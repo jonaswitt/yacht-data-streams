@@ -5,11 +5,11 @@ import json from "@rollup/plugin-json";
 import stripShebang from "rollup-plugin-strip-shebang";
 
 export default {
-  input: "playground.ts",
+  input: ["playground.ts", "playback.ts", "process.ts"],
   output: {
-    file: "build/playground.cjs",
+    dir: "build",
     format: "cjs",
-    inlineDynamicImports: true,
+    chunkFileNames: "chunk/[name]-[hash].js",
   },
   plugins: [
     esbuild({

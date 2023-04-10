@@ -2,9 +2,8 @@
   "name": "canboat-streams",
   "version": "1.0.0",
   "license": "MIT",
-  "type": "module",
   "scripts": {
-    "build": "rollup --config rollup.config.js",
+    "build": "rollup --config rollup.config.mjs",
     "runPlayground": "node build/playground.cjs"
   },
   "dependencies": {

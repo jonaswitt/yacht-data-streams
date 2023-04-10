@@ -63,6 +63,11 @@ class NMEA2000Metrics extends stream.Transform {
         records["ROT"] = chunk.fields.Rate * (180 / Math.PI);
         break;
 
+      case 128259:
+        records["BoatSpeed"] =
+          chunk.fields["Speed Water Referenced"] * (3600.0 / 1852.0);
+        break;
+
       case 65293:
         break;
     }

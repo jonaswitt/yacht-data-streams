@@ -11,7 +11,7 @@ function decimalsForMetric(metric: string) {
   }
 }
 
-class CSVRows extends stream.PassThrough {
+class CSVRows extends stream.Transform {
   private pushedHeader = false;
   private metrics: string[];
 

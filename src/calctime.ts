@@ -6,10 +6,12 @@ class CalcTime extends stream.Transform {
   private timeOffset: number | undefined;
   private lastTimeMs: number | undefined;
   private pgn: number;
+  private src: number | undefined;
 
-  constructor(pgn = 129029) {
+  constructor(pgn = 129029, src = undefined) {
     super({ objectMode: true });
     this.pgn = pgn;
+    this.src = src;
   }
 
   _transform(
@@ -35,7 +37,10 @@ class CalcTime extends stream.Transform {
       timeMs,
     };
 
-    if (chunk.pgn === this.pgn) {
+    if (
+      chunk.pgn === this.pgn &&
+      (chunk.src === this.src || this.src == null)
+    ) {
       const gpsTime = new Date(
         `${(chunk.fields["Date"] as string).replace(/\./g, "-")}T${(
           chunk.fields["Time"] as string
