@@ -19,6 +19,8 @@ class CalcTime extends stream.Transform {
     encoding: BufferEncoding,
     callback: stream.TransformCallback
   ): void {
+    // console.log("2", JSON.stringify(chunk));
+
     const timeMs =
       chunk.time.length === 12 && chunk.time[2] == ":" && chunk.time[8] === "."
         ? Number(chunk.time.slice(0, 2)) * 3600 * 1000 +
@@ -75,6 +77,7 @@ class CalcTime extends stream.Transform {
   }
 
   _flush(callback: stream.TransformCallback): void {
+    console.log("time flush");
     if (this.timeOffset == null) {
       console.log("Warning: did not find time");
     }

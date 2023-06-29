@@ -34,10 +34,28 @@ class PsqlInserter extends stream.Writable {
       this.connectPromise = undefined;
 
       const q = `INSERT INTO boatdata (${fields}) VALUES (${values});`;
+      console.log("PSQL", q);
       await this.client.query(q);
+      console.log("  q done");
 
       callback();
     })();
+  }
+
+  _destroy(
+    error: Error | null,
+    callback: (error?: Error | null | undefined) => void
+  ): void {
+    console.log("done");
+
+    callback();
+  }
+
+  _final(callback: (error?: Error | null | undefined) => void): void {
+    // this.client.
+    // disconnect?
+    console.log("done");
+    callback();
   }
 }
 

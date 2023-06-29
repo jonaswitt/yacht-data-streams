@@ -10,6 +10,8 @@ class NMEA2000Metrics extends stream.Transform {
     encoding: BufferEncoding,
     callback: stream.TransformCallback
   ): void {
+    // console.log("3", JSON.stringify(chunk));
+
     const records = {};
 
     switch (chunk.pgn) {
@@ -22,6 +24,8 @@ class NMEA2000Metrics extends stream.Transform {
         switch (chunk.fields.Reference) {
           case "Magnetic":
             records["Heading_Mag"] = chunk.fields.Heading * (180 / Math.PI);
+            // if (chunk.fields.Variation != null) {
+            // }
             break;
         }
         break;
@@ -70,6 +74,10 @@ class NMEA2000Metrics extends stream.Transform {
 
       case 65293:
         break;
+
+      // default:
+      //   console.log("3", JSON.stringify(chunk));
+      //   break;
     }
 
     if (Object.getOwnPropertyNames(records).length > 0) {

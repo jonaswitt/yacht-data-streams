@@ -20,8 +20,10 @@ class UDPOut extends Writable {
     encoding: BufferEncoding,
     callback: (error?: Error | null | undefined) => void
   ): void {
+    // console.log(chunk);
     if (Array.isArray(chunk.input)) {
       for (const line of chunk.input) {
+        console.log("UDP", this.port, line);
         this.socket.send(
           Buffer.from(line + "\r\n", "ascii"),
           this.port,

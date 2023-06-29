@@ -69,6 +69,7 @@ class AverageWindow extends stream.Transform {
     callback: stream.TransformCallback
   ): void {
     const chunkTime = chunk.timestampGps || chunk.timestamp;
+    // console.log("4", chunkTime.toISOString(), JSON.stringify(chunk));
     const chunkTimeRound =
       Math.ceil(chunkTime.valueOf() / this.windowSizeMs) * this.windowSizeMs;
 
@@ -95,6 +96,14 @@ class AverageWindow extends stream.Transform {
     if (this.chunks.length === 0 || this.chunkTimeRoundCurrent == null) {
       return;
     }
+
+    // average
+    // console.log(
+    //   "chunks",
+    //   new Date(this.chunkTimeRoundCurrent).toISOString(),
+    //   this.chunks.length
+    //   // JSON.stringify(this.chunks)
+    // );
 
     const values = fromPairs(
       uniq(flatMap(this.chunks, (c) => keys(c.records))).map((key) => [

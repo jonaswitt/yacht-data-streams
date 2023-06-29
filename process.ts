@@ -1,64 +1,35 @@
-import YdvrStream from "@canboat/canboatjs/lib/ydvr";
-import minimist from "minimist";
 import fs from "fs";
 import Sort from "./src/sort";
 import AverageWindow from "./src/average";
 import CalcTime from "./src/calctime";
-import RealtimePlayback from "./src/realtime";
 import NMEA2000Metrics from "./src/nmea2000metrics";
 import PsqlInserter from "./src/psql";
-import JsonlFormat from "./src/jsonl";
 import ParseYDGW from "./src/ydgw";
 import CSVRows from "./src/csv";
 import { format } from "@fast-csv/format";
 import Normalize from "./src/normalize";
 import GrafanaWS from "./src/grafana-ws";
 import GrafanaHTTP from "./src/grafana-http";
-import { PassThrough, Readable, Transform, pipeline } from "stream";
-import BreakLines from "./src/lines";
-import UDPOut from "./src/udp-out";
-
-const argv = minimist(process.argv.slice(2), {
-  alias: { h: "help" },
-});
-
-if (argv["help"]) {
-  console.error(`Usage: ${process.argv[0]} [file]
-
-Options:
-  -h, --help       output usage information`);
-  process.exit(1);
-}
-
-const input =
-  argv["_"].length === 0 || argv["_"][0] === "-"
-    ? process.stdin
-    : fs.createReadStream(argv["_"][0]);
+import { Readable, pipeline, PassThrough } from "stream";
+import UDPIn from "./src/udp-in";
 
 process.stdout.on("error", (err) => {
   if (err.code == "EPIPE") {
-    console.warn(err);
     process.exit(0);
   }
 });
 
 const canboatObjects = pipeline(
-  input,
+  new UDPIn(9000),
+  //   new PassThrough({ objectMode: true }).on("data", (data) => console.log(data)),
 
-  // For YDWG input
-  // new BreakLines(),
-  // new ParseYDGW(),
+  new ParseYDGW(),
+  //   new PassThrough({ objectMode: true }).on("data", (data) => console.log(data)),
 
-  // For YDVR input
-  new YdvrStream() as unknown as Transform,
-  new PassThrough({ objectMode: true }).on("data", (data) =>
-    console.log(JSON.stringify(data))
-  ),
-
-  new CalcTime(129029), // 129033, 129029
-  // new RealtimePlayback({
-  //   // resetTime: true,
-  // }),
+  new CalcTime(129033),
+  //   new RealtimePlayback({
+  //     // resetTime: true,
+  //   }),
 
   new NMEA2000Metrics(),
   new Normalize(),
@@ -69,23 +40,9 @@ const canboatObjects = pipeline(
     if (err != null) {
       console.error(err);
       process.exit(1);
-    } else {
-      console.log("Done");
     }
   }
 ) as unknown as Readable;
-
-// pipeline(
-//   canboatObjects,
-//   new UDPOut("127.0.0.1", 9000),
-
-//   (err) => {
-//     if (err != null) {
-//       console.error(err);
-//       process.exit(1);
-//     }
-//   }
-// );
 
 const avg1Sec = pipeline(
   canboatObjects,
@@ -105,7 +62,7 @@ const avg1Sec = pipeline(
 
 pipeline(
   avg1Sec,
-  new CSVRows(["Lat", "Lon", "Heading_Mag", "AWA", "AWS", "BoatSpeed"]),
+  new CSVRows(["Lat", "Lon", "Heading_Mag", "AWA", "AWS"]),
   format(),
   fs.createWriteStream("out-1sec.csv"),
   (err) => {
@@ -129,7 +86,7 @@ const avg10Sec = pipeline(
 
 pipeline(
   avg10Sec,
-  new CSVRows(["Lat", "Lon", "Heading_Mag", "AWA", "AWS", "BoatSpeed"]),
+  new CSVRows(["Lat", "Lon", "Heading_Mag", "AWA", "AWS"]),
   format(),
   fs.createWriteStream("out-10sec.csv"),
   (err) => {
