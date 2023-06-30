@@ -44,24 +44,30 @@ process.stdout.on("error", (err) => {
 
 const canboatObjects = pipeline(
   input,
+  // input,
+  new MQTT("dca6325c100e", {
+    "N/dca6325c100e/temperature/20/Temperature": "Temp_Work",
+    "N/dca6325c100e/temperature/21/Temperature": "Temp_Living",
+    "N/dca6325c100e/temperature/22/Temperature": "Temp_Outdoor",
+  }),
 
   // For YDWG input
   // new BreakLines(),
   // new ParseYDGW(),
 
   // For YDVR input
-  new YdvrStream() as unknown as Transform,
+  // new YdvrStream() as unknown as Transform,
   new PassThrough({ objectMode: true }).on("data", (data) =>
     console.log(JSON.stringify(data))
   ),
 
-  new CalcTime(129029), // 129033, 129029
+  // new CalcTime(129029), // 129033, 129029
   // new RealtimePlayback({
   //   // resetTime: true,
   // }),
 
-  new NMEA2000Metrics(),
-  new Normalize(),
+  // new NMEA2000Metrics(),
+  // new Normalize(),
   // Debugging
   // new PassThrough({ objectMode: true }).on("data", (data) => console.log(data)),
 
