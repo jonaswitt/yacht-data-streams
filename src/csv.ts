@@ -31,15 +31,17 @@ class CSVRows extends stream.Transform {
       this.push(["SecondsSince1970", "ISODateTimeUTC", ...this.metrics]);
       this.pushedHeader = true;
     }
-    const ts = new Date(chunk.timestampGps ?? chunk.timestamp);
-    this.push([
-      (ts.valueOf() / 1000).toFixed(3),
-      ts.toISOString(),
-      ...this.metrics.map(
-        (metric) =>
-          chunk.records[metric]?.toFixed(decimalsForMetric(metric)) ?? ""
-      ),
-    ]);
+    if (this.metrics.some((metric) => chunk.records[metric] != null)) {
+      const ts = new Date(chunk.timestampGps ?? chunk.timestamp);
+      this.push([
+        (ts.valueOf() / 1000).toFixed(3),
+        ts.toISOString(),
+        ...this.metrics.map(
+          (metric) =>
+            chunk.records[metric]?.toFixed(decimalsForMetric(metric)) ?? ""
+        ),
+      ]);
+    }
     callback();
   }
 }
