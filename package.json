@@ -9,6 +9,7 @@
   "dependencies": {
     "@canboat/canboatjs": "https://github.com/jonaswitt/canboatjs.git#ydvr-file",
     "@fast-csv/format": "^4.3.5",
+    "@influxdata/influxdb-client": "^1.33.2",
     "@rollup/plugin-json": "^5.0.1",
     "lodash": "^4.17.21",
     "minimist": "^1.2.7",
