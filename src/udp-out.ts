@@ -13,6 +13,7 @@ class UDPOut extends Writable {
     this.address = address;
     this.port = port;
     this.socket = dgram.createSocket("udp4");
+    this.socket.unref();
   }
 
   _write(
@@ -23,7 +24,9 @@ class UDPOut extends Writable {
     // console.log(chunk);
     if (Array.isArray(chunk.input)) {
       for (const line of chunk.input) {
-        console.log("UDP", this.port, line);
+        if (process.env.VERBOSE) {
+          console.log(`UDP ${this.port} ${line}`);
+        }
         this.socket.send(
           Buffer.from(line + "\r\n", "ascii"),
           this.port,

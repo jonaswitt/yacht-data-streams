@@ -5,7 +5,13 @@ import json from "@rollup/plugin-json";
 import stripShebang from "rollup-plugin-strip-shebang";
 
 export default {
-  input: ["playground.ts", "playback.ts", "process.ts"],
+  input: [
+    "playground.ts",
+    "playback.ts",
+    "process.ts",
+    "ydvr-playback.ts",
+    "ydgw-playback.ts",
+  ],
   output: {
     dir: "build",
     format: "cjs",

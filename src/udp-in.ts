@@ -13,6 +13,7 @@ class UDPIn extends Readable {
       this.push(msg.toString("ascii"), "ascii");
     });
     this.socket.bind(port);
+    console.log("Listening on UDP port", port);
   }
 
   _read(size: number): void {}

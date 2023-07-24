@@ -19,7 +19,7 @@ class ParseYDGW extends stream.Transform {
     encoding: BufferEncoding,
     callback: stream.TransformCallback
   ): void {
-    const res = this.parser.parseYDGW02(chunk);
+    const res = this.parser.parseYDGW02(chunk.trim());
     if (res) {
       this.push(res);
     }
