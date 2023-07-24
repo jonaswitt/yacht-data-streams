@@ -17,6 +17,8 @@ import GrafanaHTTP from "./src/grafana-http";
 import { PassThrough, Readable, Transform, pipeline } from "stream";
 import BreakLines from "./src/lines";
 import UDPOut from "./src/udp-out";
+import MQTT from "./src/mqtt";
+import InfluxOut from "./src/influx";
 
 const argv = minimist(process.argv.slice(2), {
   alias: { h: "help" },
@@ -44,27 +46,26 @@ process.stdout.on("error", (err) => {
 
 const canboatObjects = pipeline(
   input,
-  // input,
-  new MQTT("dca6325c100e", {
-    "N/dca6325c100e/temperature/20/Temperature": "Temp_Work",
-    "N/dca6325c100e/temperature/21/Temperature": "Temp_Living",
-    "N/dca6325c100e/temperature/22/Temperature": "Temp_Outdoor",
-  }),
+  // new MQTT("dca6325c100e", {
+  //   "N/dca6325c100e/temperature/20/Temperature": "Temp_Work",
+  //   "N/dca6325c100e/temperature/21/Temperature": "Temp_Living",
+  //   "N/dca6325c100e/temperature/22/Temperature": "Temp_Outdoor",
+  // }),
 
   // For YDWG input
   // new BreakLines(),
   // new ParseYDGW(),
 
   // For YDVR input
-  // new YdvrStream() as unknown as Transform,
-  new PassThrough({ objectMode: true }).on("data", (data) =>
-    console.log(JSON.stringify(data))
-  ),
+  new YdvrStream() as unknown as Transform,
+  // new PassThrough({ objectMode: true }).on("data", (data) =>
+  //   console.log(JSON.stringify(data))
+  // ),
 
-  // new CalcTime(129029), // 129033, 129029
-  // new RealtimePlayback({
-  //   // resetTime: true,
-  // }),
+  new CalcTime(129029), // 129033, 129029
+  new RealtimePlayback({
+    resetTime: true,
+  }),
 
   // new NMEA2000Metrics(),
   // new Normalize(),
@@ -81,9 +82,29 @@ const canboatObjects = pipeline(
   }
 ) as unknown as Readable;
 
-// pipeline(
+pipeline(
+  canboatObjects,
+  // new UDPOut("127.0.0.1", 9000),
+
+  // new PassThrough({ objectMode: true }).on("data", (data) => console.log(data)),
+
+  new InfluxOut("127.0.0.1", 8094),
+
+  (err) => {
+    if (err != null) {
+      console.error(err);
+      process.exit(1);
+    } else {
+      console.log("Done");
+    }
+  }
+);
+
+// const avg1Sec = pipeline(
 //   canboatObjects,
-//   new UDPOut("127.0.0.1", 9000),
+//   new Sort(1000),
+//   new AverageWindow(1000),
+//   new Normalize(),
 
 //   (err) => {
 //     if (err != null) {
@@ -93,87 +114,73 @@ const canboatObjects = pipeline(
 //   }
 // );
 
-const avg1Sec = pipeline(
-  canboatObjects,
-  new Sort(1000),
-  new AverageWindow(1000),
-  new Normalize(),
-
-  (err) => {
-    if (err != null) {
-      console.error(err);
-      process.exit(1);
-    }
-  }
-);
-
 // CSV
 
-pipeline(
-  avg1Sec,
-  new CSVRows(["Lat", "Lon", "Heading_Mag", "AWA", "AWS", "BoatSpeed"]),
-  format(),
-  fs.createWriteStream("out-1sec.csv"),
-  (err) => {
-    if (err != null) {
-      console.warn(err);
-    }
-  }
-);
+// pipeline(
+//   avg1Sec,
+//   new CSVRows(["Temp_Living", "Temp_Work", "Temp_Outdoor"]),
+//   format(),
+//   fs.createWriteStream("out-1sec.csv"),
+//   (err) => {
+//     if (err != null) {
+//       console.warn(err);
+//     }
+//   }
+// );
 
-const avg10Sec = pipeline(
-  avg1Sec,
-  new AverageWindow(10000),
-  new Normalize(),
-  (err) => {
-    if (err != null) {
-      console.error(err);
-      process.exit(1);
-    }
-  }
-);
+// const avg10Sec = pipeline(
+//   avg1Sec,
+//   new AverageWindow(60000),
+//   new Normalize(),
+//   (err) => {
+//     if (err != null) {
+//       console.error(err);
+//       process.exit(1);
+//     }
+//   }
+// );
 
-pipeline(
-  avg10Sec,
-  new CSVRows(["Lat", "Lon", "Heading_Mag", "AWA", "AWS", "BoatSpeed"]),
-  format(),
-  fs.createWriteStream("out-10sec.csv"),
-  (err) => {
-    if (err != null) {
-      console.warn(err);
-    }
-  }
-);
+// pipeline(
+//   avg10Sec,
+//   new CSVRows(["Temp_Living", "Temp_Work", "Temp_Outdoor"]),
+//   format(),
+//   fs.createWriteStream("out-60sec.csv"),
+//   (err) => {
+//     if (err != null) {
+//       console.warn(err);
+//     }
+//   }
+// );
 
-// PSQL
-if (process.env["PGUSER"]) {
-  pipeline(canboatObjects, new PsqlInserter(), (err) => {
-    if (err != null) {
-      console.warn(err);
-    }
-  });
-}
+// // PSQL
+// if (process.env["PGUSER"]) {
+//   pipeline(canboatObjects, new PsqlInserter(), (err) => {
+//     if (err != null) {
+//       console.warn(err);
+//     }
+//   });
+// }
 
-// Grafana
-if (process.env["GRAFANA_TOKEN"]) {
-  pipeline(
-    canboatObjects,
-    new Sort(500),
-    new AverageWindow(500),
-    new Normalize(),
-    new GrafanaHTTP({
-      url: "http://localhost:3000/api/live/push/canboat",
-      token: process.env["GRAFANA_TOKEN"],
-      metrics: ["AWS"],
-    }),
-    //   new GrafanaWS({
-    //     url: "ws://localhost:3000/api/live/push/canboat",
-    //     token: process.env["GRAFANA_TOKEN"],
-    //   })
-    (err) => {
-      if (err != null) {
-        console.warn(err);
-      }
-    }
-  );
-}
+// // Grafana
+// if (process.env["GRAFANA_TOKEN"]) {
+//   pipeline(
+//     canboatObjects,
+//     new Sort(500),
+//     new AverageWindow(500),
+//     new Normalize(),
+//     new GrafanaHTTP({
+//       url: "http://localhost:3000/api/live/push/canboat",
+//       token: process.env["GRAFANA_TOKEN"],
+//       metrics: ["AWS"],
+//     }),
+//     //   new GrafanaWS({
+//     //     url: "ws://localhost:3000/api/live/push/canboat",
+//     //     token: process.env["GRAFANA_TOKEN"],
+//     //   })
+//     (err) => {
+//       if (err != null) {
+//         console.warn(err);
+//       }
+//     }
+//   );
+// }

@@ -25,7 +25,7 @@ class MQTT extends Readable {
       });
     });
 
-    this.client.on("message", (topic, message) => {
+    this.client.on("message", (topic, message, { qos, retain, dup }) => {
       const metric = topicToMetric[topic];
       if (!metric) {
         return;
@@ -46,11 +46,23 @@ class MQTT extends Readable {
       }
     });
 
+    // This is how UIs (gui-v2, html5-app, VRM) should now work:
+
+    // subscribe to N/<portalid>/#
+
+    // publish once to R/<portalid>/keepalive (lower case k). Empty payload.
+
+    // thereafter, every 30 seconds, publish to R/<portalid>/keepalive again, with payload { "keepalive-options" : ["suppress-republish"] }
+
     setInterval(() => {
-      this.client.publish(`R/${instanceId}/keepalive`, "", (err) => {
-        // console.log("keepalive sent", err);
-      });
-    }, 60_000);
+      this.client.publish(
+        `R/${instanceId}/keepalive`,
+        JSON.stringify({ "keepalive-options": ["suppress-republish"] }),
+        (err) => {
+          // console.log("keepalive sent", err);
+        }
+      );
+    }, 30_000);
   }
 
   _read(size: number): void {}
