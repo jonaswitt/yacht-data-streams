@@ -15,6 +15,7 @@
     "@canboat/pgns": "^1.4.0",
     "@fast-csv/format": "^4.3.5",
     "@influxdata/influxdb-client": "^1.33.2",
+    "csv-parser": "^3.0.0",
     "file-stream-rotator": "^1.0.0",
     "lodash": "^4.17.21",
     "minimist": "^1.2.7",

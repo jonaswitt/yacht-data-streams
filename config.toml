@@ -3,7 +3,7 @@
 url = "mqtt://192.168.1.184"
 measurement = "victron"
 tagInstance = true
-tagDevice = false
+tagDevice = true
 clientId = "test"
 
 # [[input.ydgw]]
@@ -23,7 +23,7 @@ clientId = "test"
 # url = "ws://localhost:8080"
 
 [mapping]
-mappingFile = "mapping.toml"
+mappingFile = "mapping.csv"
 
 [[output.console]]
 namepass = "named"

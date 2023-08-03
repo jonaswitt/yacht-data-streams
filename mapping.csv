@@ -1,0 +1,12 @@
+measurement,matchField,matchTag.instance,matchTag.device,matchTag.source,matchTag.pgn,outputField,outputTag.instance,factor
+victron,temperature/Temperature,dca6325c100e,20,,,Temperature,Work
+victron,temperature/Temperature,dca6325c100e,21,,,Temperature,Living
+victron,temperature/Temperature,dca6325c100e,22,,,Temperature,Outdoor
+
+nmea,"Latitude, deg",,,127,,Lat,,
+nmea,"Longitude, deg",,,127,,Lon,,
+nmea,"COG, deg",,,127,,COG,,
+nmea,"SOG, kn",,,127,,SOG,,
+
+#h5000,GPS/Latitude,,,,,Lat,
+#h5000,GPS/Longitude,,,,,Lon,

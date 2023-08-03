@@ -1,6 +1,7 @@
 import {
   entries,
   flatMap,
+  fromPairs,
   groupBy,
   isEqual,
   keyBy,
@@ -8,8 +9,8 @@ import {
   toPairs,
 } from "lodash";
 import { PointProcessor, RawPoint } from "./types";
-import toml from "toml";
 import fs from "fs";
+import csv from "csv-parser";
 
 type MappingSpec = {
   measurement: string;
@@ -41,7 +42,7 @@ const buildMappingTree = (mapping: MappingSpec[]) =>
   mapValues(
     groupBy(mapping, (spec) => spec.measurement),
     (specs) => {
-      const exactMatchSpecs = keyBy(
+      const exactMatchSpecs = groupBy(
         specs.filter((spec) => typeof spec.matchField === "string"),
         (spec) => spec.matchField as string
       );
@@ -76,12 +77,51 @@ export class Mapper implements PointProcessor {
   }
 
   private async readMapping() {
-    const data = await fs.promises.readFile(this.filePath, "utf-8");
-    const fileContent = toml.parse(data);
+    const fileContent = await new Promise<MappingSpec[]>((resolve) => {
+      const results: MappingSpec[] = [];
+      fs.createReadStream(this.filePath)
+        .pipe(
+          csv({
+            skipComments: true,
+          })
+        )
+        .on("data", (data) => {
+          if (data.measurement == null) {
+            return;
+          }
+          const matchTags = fromPairs(
+            entries<string>(data)
+              .filter(([key, value]) => key.startsWith("matchTag."))
+              .map(([key, value]) => [key.slice(9), value.trim()])
+              .filter(([key, value]) => value !== "")
+          );
+          const outputTags = fromPairs(
+            entries<string>(data)
+              .filter(([key, value]) => key.startsWith("outputTag."))
+              .map(([key, value]) => [key.slice(10), value.trim()])
+              .filter(([key, value]) => value !== "")
+          );
+
+          results.push({
+            measurement: data.measurement,
+            matchField: data.matchField,
+            matchTags,
+            destinationField: data.outputField,
+            destinationTags: outputTags,
+            factor: data.factor?.trim()?.length
+              ? parseFloat(data.factor)
+              : undefined,
+          });
+        })
+        .on("end", () => {
+          resolve(results);
+        });
+    });
+
     if (isEqual(this.lastFileContent, fileContent)) {
       return false;
     }
-    this.mappings = buildMappingTree(specsFromToml(fileContent));
+    this.mappings = buildMappingTree(fileContent);
     this.lastFileContent = fileContent;
     // console.log(JSON.stringify(this.mappings, null, 2));
     return true;
@@ -105,35 +145,40 @@ export class Mapper implements PointProcessor {
     let outTags: { [key: string]: string } | undefined;
 
     for (const [fieldName, fieldValue] of entries(point.fields)) {
-      let spec: MappingSpec | undefined;
+      let specs: MappingSpec[] = [];
       let match: RegExpMatchArray | undefined;
       if (measurementSpecs.exactMatchSpecs[fieldName] != null) {
-        spec = measurementSpecs.exactMatchSpecs[fieldName];
+        specs = measurementSpecs.exactMatchSpecs[fieldName];
       } else {
         for (const s of measurementSpecs.regexMatchSpecs) {
           match = fieldName.match(s.matchField) ?? undefined;
           if (match != null) {
-            spec = s;
+            if (specs == null) {
+              specs = [];
+            }
+            specs.push(s);
             break;
           }
         }
       }
 
-      if (spec?.matchTags != null) {
-        for (const [t, v] of entries(spec.matchTags)) {
-          if (tags?.[t] !== v) {
-            console.log(
-              `Tag ${t} does not match ${JSON.stringify(
-                v
-              )} - is ${JSON.stringify(tags?.[t])} instead`
-            );
-            spec = undefined;
-            break;
+      specs = specs?.filter((spec) => {
+        if (spec?.matchTags != null) {
+          for (const [t, v] of entries(spec.matchTags)) {
+            if (tags?.[t] !== v) {
+              // console.log(
+              //   `Tag ${t} does not match ${JSON.stringify(
+              //     v
+              //   )} - is ${JSON.stringify(tags?.[t])} instead`
+              // );
+              return false;
+            }
           }
         }
-      }
+        return true;
+      });
 
-      if (spec != null) {
+      for (const spec of specs) {
         const destinationField =
           typeof spec.destinationField === "string"
             ? spec.destinationField
