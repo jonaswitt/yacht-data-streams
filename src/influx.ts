@@ -18,19 +18,19 @@ const PGNS = pgns.PGNs.reduce((acc, pgn) => {
 }, {});
 
 const mapping = {
-  "Speed Water Referenced, kn": "BoatSpeed",
-  "Wind Angle, True (ground referenced to North), deg": "TWD",
-  "Wind Speed, True (ground referenced to North), kn": "TWS",
-  "Wind Angle, True (boat referenced), deg": "TWA",
-  "Wind Angle, Apparent, deg": "AWA",
-  "Wind Speed, Apparent, kn": "AWS",
-  "Latitude, deg": "Lat",
-  "Longitude, deg": "Lon",
-  "Heading, Magnetic, deg": "Heading_Mag",
-  "COG, deg": "COG",
-  "SOG, kn": "SOG",
-  "Pitch, deg": "Trim",
-  "Roll, deg": "Heel",
+  // "Speed Water Referenced, kn": "BoatSpeed",
+  // "Wind Angle, True (ground referenced to North), deg": "TWD",
+  // "Wind Speed, True (ground referenced to North), kn": "TWS",
+  // "Wind Angle, True (boat referenced), deg": "TWA",
+  // "Wind Angle, Apparent, deg": "AWA",
+  // "Wind Speed, Apparent, kn": "AWS",
+  // "Latitude, deg": "Lat",
+  // "Longitude, deg": "Lon",
+  // "Heading, Magnetic, deg": "Heading_Mag",
+  // "COG, deg": "COG",
+  // "SOG, kn": "SOG",
+  // "Pitch, deg": "Trim",
+  // "Roll, deg": "Heel",
 };
 
 const escapeKey = (key: string) => key.replace(/[,= ]/g, (m) => `\\${m}`);

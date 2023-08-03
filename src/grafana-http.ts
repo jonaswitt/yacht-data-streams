@@ -1,34 +1,18 @@
-import stream from "stream";
 import fetch from "node-fetch";
+import { RawPoint, rawPointToInflux } from "./types";
 
-class GrafanaHTTP extends stream.Writable {
+class GrafanaHTTP {
   private url: string;
   private token: string;
-  private metrics: string[];
 
-  constructor(options: { url: string; token: string; metrics: string[] }) {
-    super({
-      objectMode: true,
-    });
+  constructor(options: { url: string; token: string }) {
     this.url = options.url;
     this.token = options.token;
-    this.metrics = options.metrics;
   }
 
-  _write(
-    chunk: any,
-    encoding: BufferEncoding,
-    callback: (error?: Error | null | undefined) => void
-  ): void {
-    (async () => {
-      const msg = `boatdata ${Object.getOwnPropertyNames(chunk.records)
-        // this.metrics
-        .map((key) => `${key}=${chunk.records[key] ?? 0}`)
-        .join(",")} ${
-        (chunk.timestampGps ?? chunk.timestamp).valueOf() * 1000000
-      }`;
-      console.log(msg);
-
+  async write(point: RawPoint) {
+    const msg = rawPointToInflux(point).toLineProtocol();
+    if (msg != null) {
       const res = await fetch(this.url, {
         headers: {
           Authorization: `Bearer ${this.token}`,
@@ -37,14 +21,13 @@ class GrafanaHTTP extends stream.Writable {
         body: msg,
       });
 
-      const body = await res.text();
-
-      callback(
-        res.status === 200
-          ? undefined
-          : new Error(`Request failed with status ${res.status}`)
-      );
-    })();
+      // console.log(res.status, res.statusText, msg);
+      if (!res.ok) {
+        throw new Error(
+          `Grafana HTTP write failed: ${res.status}: ${await res.text()}`
+        );
+      }
+    }
   }
 }
 

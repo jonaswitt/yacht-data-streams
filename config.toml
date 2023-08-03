@@ -1,0 +1,40 @@
+
+[[input.victron]]
+url = "mqtt://192.168.1.184"
+measurement = "victron"
+tagInstance = true
+tagDevice = false
+clientId = "test"
+
+# [[input.ydgw]]
+# port = 9000
+
+# [input.ydgw.logFile]
+# filename = "log/test.%DATE%"
+# frequency = "hourly"
+# date_format = "YYYY-MM-DD_HH-mm"
+# size = "10M"
+# max_logs = "5d"
+# extension = ".log"
+# audit_file = "log/audit.json"
+# create_symlink = true
+
+# [[input.h5000]]
+# url = "ws://localhost:8080"
+
+[mapping]
+mappingFile = "mapping.toml"
+
+[[output.console]]
+namepass = "named"
+
+# [[output.grafana-live]]
+# url = "http://localhost:3000/api/live/push/flat"
+# token = ""
+# namepass = "named"
+
+[[output.influxdb]]
+url = "http://localhost:8086"
+org = ""
+token = ""
+bucket = ""

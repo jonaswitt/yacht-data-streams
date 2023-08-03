@@ -2,20 +2,22 @@ import esbuild from "rollup-plugin-esbuild";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
-import stripShebang from "rollup-plugin-strip-shebang";
 
 export default {
   input: [
     "playground.ts",
     "playback.ts",
     "process.ts",
+    "playground2.ts",
     "ydvr-playback.ts",
     "ydgw-playback.ts",
+    "h5000.ts",
   ],
   output: {
     dir: "build",
     format: "cjs",
     chunkFileNames: "chunk/[name]-[hash].js",
+    banner: "#!/usr/bin/env node",
   },
   plugins: [
     esbuild({
@@ -37,7 +39,6 @@ export default {
     nodeResolve({
       preferBuiltins: true,
     }),
-    stripShebang(),
     commonjs(),
     json(),
   ],
