@@ -1,11 +1,11 @@
 import minimist from "minimist";
 import fs from "fs";
-import CalcTime from "../src/calctime";
-import RealtimePlayback from "../src/realtime";
+import CalcTime from "../src/streams/calctime";
+import RealtimePlayback from "../src/streams/realtime";
 import { pipeline } from "stream";
-import BreakLines from "../src/lines";
-import ParseYDGW from "../src/ydgw";
-import UDPOut from "../src/udp-out";
+import BreakLines from "../src/streams/lines";
+import ParseYDGW from "../src/streams/ydgw";
+import UDPOut from "../src/streams/udp-out";
 
 const argv = minimist(process.argv.slice(2), {
   alias: { a: "address", p: "port", h: "help" },

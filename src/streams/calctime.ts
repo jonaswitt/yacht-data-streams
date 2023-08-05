@@ -1,5 +1,5 @@
 import stream from "stream";
-import { PGN } from "./types";
+import { PGN } from "../types";
 
 class CalcTime extends stream.Transform {
   private pendingMessages: PGN[] = [];

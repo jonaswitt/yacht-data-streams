@@ -1,7 +1,4 @@
-import { entries, size } from "lodash";
-import { Writable } from "stream";
-import pgns from "@canboat/pgns";
-import { InfluxDB, Point, WriteApi } from "@influxdata/influxdb-client";
+import { InfluxDB, WriteApi } from "@influxdata/influxdb-client";
 import { RawPoint, rawPointToInflux } from "./types";
 
 export class InfluxOutput {

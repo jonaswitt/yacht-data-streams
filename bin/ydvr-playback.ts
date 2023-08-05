@@ -2,10 +2,10 @@ import YdvrStream from "@canboat/canboatjs/lib/ydvr";
 import { pgnToYdgwRawFormat } from "@canboat/canboatjs/lib/toPgn";
 import minimist from "minimist";
 import fs from "fs";
-import CalcTime from "../src/calctime";
-import RealtimePlayback from "../src/realtime";
+import CalcTime from "../src/streams/calctime";
+import RealtimePlayback from "../src/streams/realtime";
 import { Transform, pipeline } from "stream";
-import UDPOut from "../src/udp-out";
+import UDPOut from "../src/streams/udp-out";
 
 const argv = minimist(process.argv.slice(2), {
   alias: { a: "address", p: "port", h: "help" },

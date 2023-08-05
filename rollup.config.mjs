@@ -5,9 +5,6 @@ import json from "@rollup/plugin-json";
 
 export default {
   input: [
-    "playground.ts",
-    "playback.ts",
-    "process.ts",
     "playground2.ts",
     "bin/ydvr-playback.ts",
     "bin/ydgw-playback.ts",

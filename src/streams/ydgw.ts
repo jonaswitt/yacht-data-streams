@@ -2,7 +2,7 @@ import stream from "stream";
 import { Parser } from "@canboat/canboatjs/lib/fromPgn";
 
 class ParseYDGW extends stream.Transform {
-  protected parser: Parser;
+  protected parser: any;
 
   constructor() {
     super({ objectMode: true });
