@@ -18,7 +18,7 @@ export class FilterOutput implements Output {
     this.filter = {
       namepass:
         Array.isArray(filter.namepass) || filter.namepass == null
-          ? filter.namepass
+          ? (filter.namepass as string[] | undefined)
           : [filter.namepass],
     };
   }

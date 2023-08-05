@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import YdvrStream from "@canboat/canboatjs/lib/ydvr";
 import { pgnToYdgwRawFormat } from "@canboat/canboatjs/lib/toPgn";
 import minimist from "minimist";
