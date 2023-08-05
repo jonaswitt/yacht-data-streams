@@ -1,9 +1,9 @@
 {
-  "name": "canboat-streams",
+  "name": "yacht-data-streams",
   "version": "1.0.0",
   "license": "MIT",
   "bin": {
-    "playground2": "./build/playground2.js"
+    "yacht-data-streams": "./build/yacht-data-streams.js"
   },
   "scripts": {
     "clean": "rm -rf build",

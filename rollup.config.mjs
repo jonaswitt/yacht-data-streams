@@ -5,7 +5,7 @@ import json from "@rollup/plugin-json";
 
 export default {
   input: [
-    "playground2.ts",
+    "bin/yacht-data-streams.ts",
     "bin/ydvr-playback.ts",
     "bin/ydgw-playback.ts",
     "bin/h5000-dummy-ws-server.ts",
