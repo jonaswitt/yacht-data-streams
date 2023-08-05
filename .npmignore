@@ -1,7 +1,4 @@
-src
-log
+/log
 *.tgz
-rollup.config.*
-*.ts
 *.dat
 *.csv 
