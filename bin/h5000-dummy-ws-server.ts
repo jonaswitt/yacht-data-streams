@@ -1,8 +1,24 @@
+import minimist from "minimist";
 import { WebSocketServer } from "ws";
 
-const wss = new WebSocketServer({ port: 8080 });
+const argv = minimist(process.argv.slice(2), {
+  alias: { p: "port", h: "help" },
+});
 
-console.log("H5000 dummy listening on WS port 8080");
+if (argv["help"]) {
+  console.error(`Usage: h5000-dummy-ws-server [-p|--port PORT]
+
+Options:
+  -p, --port PORT  Port to listen on (default: 8080)
+  -h, --help       output usage information`);
+  process.exit(1);
+}
+
+const wss = new WebSocketServer({ port: Number(argv.port ?? 8080) });
+
+console.log(
+  `h5000-dummy-ws-server listening on websocket port ${wss.options.port}`
+);
 
 wss.on("connection", function connection(ws) {
   const subscriptions = new Set<number>();

@@ -9,9 +9,9 @@ export default {
     "playback.ts",
     "process.ts",
     "playground2.ts",
-    "ydvr-playback.ts",
-    "ydgw-playback.ts",
-    "h5000.ts",
+    "bin/ydvr-playback.ts",
+    "bin/ydgw-playback.ts",
+    "bin/h5000-dummy-ws-server.ts",
   ],
   output: {
     dir: "build",

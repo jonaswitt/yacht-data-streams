@@ -2,17 +2,17 @@ import YdvrStream from "@canboat/canboatjs/lib/ydvr";
 import { pgnToYdgwRawFormat } from "@canboat/canboatjs/lib/toPgn";
 import minimist from "minimist";
 import fs from "fs";
-import CalcTime from "./src/calctime";
-import RealtimePlayback from "./src/realtime";
-import { PassThrough, Readable, Transform, pipeline } from "stream";
-import UDPOut from "./src/udp-out";
+import CalcTime from "../src/calctime";
+import RealtimePlayback from "../src/realtime";
+import { Transform, pipeline } from "stream";
+import UDPOut from "../src/udp-out";
 
 const argv = minimist(process.argv.slice(2), {
-  alias: { h: "help" },
+  alias: { a: "address", p: "port", h: "help" },
 });
 
-if (argv["help"]) {
-  console.error(`Usage: ${process.argv[0]} [file]
+if (argv["help"] || !argv["address"] || !argv["port"]) {
+  console.error(`Usage: ydvr-playback [-a|--address ADDRESS] [-p|--port PORT] [file]
 
 Options:
   -h, --help       output usage information`);
@@ -23,6 +23,9 @@ const input =
   argv["_"].length === 0 || argv["_"][0] === "-"
     ? process.stdin
     : fs.createReadStream(argv["_"][0]);
+
+const address = argv["address"];
+const port = Number(argv["port"]);
 
 process.stdout.on("error", (err) => {
   if (err.code == "EPIPE") {
@@ -51,7 +54,7 @@ pipeline(
     },
   }),
 
-  new UDPOut("127.0.0.1", 9000),
+  new UDPOut(address, port),
 
   (err) => {
     if (err != null) {
