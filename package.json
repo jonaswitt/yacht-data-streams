@@ -7,8 +7,7 @@
   },
   "scripts": {
     "clean": "rm -rf build",
-    "build": "rollup --config rollup.config.mjs",
-    "runPlayground": "node build/playground.js"
+    "build": "rollup --config rollup.config.mjs"
   },
   "dependencies": {
     "@canboat/canboatjs": "https://github.com/jonaswitt/canboatjs.git#ydvr-file",

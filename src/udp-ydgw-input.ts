@@ -19,18 +19,6 @@ const PGNS = pgns.PGNs.reduce((acc, pgn) => {
   return acc;
 }, {});
 
-const logStream = FileStreamRotator.getStream({
-  filename: "log/test.%DATE%",
-  frequency: "hourly",
-  date_format: "YYYY-MM-DD_HH-mm",
-  size: "10M",
-  max_logs: "5d",
-  extension: ".log",
-  //   utc: true,
-  audit_file: "log/audit.json",
-  create_symlink: true,
-});
-
 export class UDPYDGWInput {
   private socket: dgram.Socket;
 
