@@ -11,6 +11,7 @@ import GrafanaWS from "./grafana-ws";
 import GrafanaHTTP from "./grafana-http";
 import ConsoleJsonWriter from "./console";
 import { FilterOutput } from "./filter";
+import path from "path";
 
 const INPUT_TYPE_MAP = {
   victron: VictronMQTTInput,
@@ -96,7 +97,14 @@ export class Controller {
 
     this.processors = [
       ...(newConfig.mapping?.mappingFile != null
-        ? [new Mapper(newConfig.mapping.mappingFile)]
+        ? [
+            new Mapper(
+              path.join(
+                path.dirname(this.configFilePath),
+                newConfig.mapping.mappingFile
+              )
+            ),
+          ]
         : []),
     ];
 
