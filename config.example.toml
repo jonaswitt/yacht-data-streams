@@ -11,6 +11,7 @@ port = 9000
 measurement = "nmea"
 
 [input.ydgw.logFile]
+# See https://github.com/rogerc/file-stream-rotator#options
 filename = "log/test.%DATE%"
 frequency = "hourly"
 date_format = "YYYY-MM-DD_HH-mm"
