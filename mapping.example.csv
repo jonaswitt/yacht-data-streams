@@ -8,5 +8,5 @@ nmea,"Longitude, deg",,,127,,Lon,,
 nmea,"COG, deg",,,127,,COG,,
 nmea,"SOG, kn",,,127,,SOG,,
 
-#h5000,GPS/Latitude,,,,,Lat,
-#h5000,GPS/Longitude,,,,,Lon,
+h5000,GPS/Latitude,,,,,Lat,
+h5000,GPS/Longitude,,,,,Lon,
