@@ -4,6 +4,10 @@ import pgns from "@canboat/pgns";
 import { entries, size } from "lodash";
 import * as FileStreamRotator from "file-stream-rotator";
 import { RawPoint } from "./types";
+import { createReadStream, createWriteStream } from "fs";
+import { unlink } from "fs/promises";
+import { createGzip } from "node:zlib";
+import { pipeline } from "node:stream";
 
 const PGNS = pgns.PGNs.reduce((acc, pgn) => {
   acc[pgn.PGN] = {
@@ -37,10 +41,25 @@ export class UDPYDGWInput {
   }: {
     port: number;
     measurement?: string;
-    logFile?: Parameters<(typeof FileStreamRotator)["getStream"]>[0];
+    logFile?: Parameters<(typeof FileStreamRotator)["getStream"]>[0] & {
+      gzip?: boolean;
+    };
   }) {
     if (logFile != null) {
-      this.logStream = FileStreamRotator.getStream(logFile);
+      const { gzip, ...options } = logFile;
+      this.logStream = FileStreamRotator.getStream(options);
+      if (gzip) {
+        this.logStream.on("rotate", function (oldFile, newFile) {
+          const gzip = createGzip();
+          const source = createReadStream(oldFile);
+          const destination = createWriteStream(oldFile + ".gz");
+          pipeline(source, gzip, destination, (err) => {
+            if (!err) {
+              unlink(oldFile);
+            }
+          });
+        });
+      }
     }
 
     this.parser = new Parser();

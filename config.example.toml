@@ -20,6 +20,7 @@ max_logs = "5d"
 extension = ".log"
 audit_file = "log/audit.json"
 create_symlink = true
+gzip = true
 
 [[input.h5000]]
 url = "ws://192.168.1.2:8080"
