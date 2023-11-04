@@ -1,6 +1,7 @@
 import { flatMap } from "lodash";
 import WebSocket from "ws";
 import { RawPoint } from "./types";
+import he from "he";
 
 export class H5000Input {
   private websocket: WebSocket;
@@ -43,6 +44,11 @@ export class H5000Input {
           //   influxPoint.tag("instance", instance?.str ?? data.inst.toString());
           //   influxPoint.floatField(`${data.group.name}/${data.sname}`, point.val);
 
+          let name = he.decode(data.lname);
+          if (data.unit?.length) {
+            name += `, ${he.decode(data.unit).replace("°", "deg")}`;
+          }
+
           this.onPoint?.({
             measurement,
             timestamp: new Date(),
@@ -50,7 +56,7 @@ export class H5000Input {
               instance: instance?.str ?? data.inst?.toString(),
             },
             fields: {
-              [`${data.group.name}/${data.sname}, ${data.unit}`]: point.val,
+              [name]: point.val,
             },
           });
         });

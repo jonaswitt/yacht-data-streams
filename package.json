@@ -15,6 +15,7 @@
     "@influxdata/influxdb-client": "^1.33.2",
     "csv-parser": "^3.0.0",
     "file-stream-rotator": "^1.0.0",
+    "he": "^1.2.0",
     "lodash": "^4.17.21",
     "minimist": "^1.2.7",
     "mqtt": "^4.3.7",
@@ -23,6 +24,7 @@
     "ws": "^8.11.0"
   },
   "devDependencies": {
+    "@types/he": "^1.2.2",
     "@types/lodash": "^4.14.196",
     "@types/minimist": "^1.2.2",
     "@types/node": "16.x",
