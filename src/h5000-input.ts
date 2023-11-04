@@ -23,9 +23,8 @@ export class H5000Input {
     this.websocket.on("error", console.error);
 
     this.websocket.on("open", () => {
-      Array.from(GROUPS.keys()).forEach((id) => {
-        this.websocket.send(JSON.stringify({ DataListReq: { groupId: id } }));
-      });
+      console.log("Connected to H5000 websocket");
+      this.websocket.send(JSON.stringify({ DataListReq: { group: 40 } }));
     });
 
     this.websocket.on("message", (data) => {
@@ -39,7 +38,7 @@ export class H5000Input {
             return;
           }
 
-          const instance = data.instanceInfoById.get(point.inst);
+          const instance = data.instanceInfoById?.get(point.inst);
           //   const influxPoint = new Point(measurement).timestamp(new Date());
           //   influxPoint.tag("instance", instance?.str ?? data.inst.toString());
           //   influxPoint.floatField(`${data.group.name}/${data.sname}`, point.val);
@@ -48,7 +47,7 @@ export class H5000Input {
             measurement,
             timestamp: new Date(),
             tags: {
-              instance: instance?.str ?? data.inst.toString(),
+              instance: instance?.str ?? data.inst?.toString(),
             },
             fields: {
               [`${data.group.name}/${data.sname}, ${data.unit}`]: point.val,
@@ -69,9 +68,10 @@ export class H5000Input {
           const group = this.groupByDataId.get(info.id);
           this.dataById.set(info.id, {
             ...info,
-            instanceInfoById: new Map(
-              info.instanceInfo.map((i) => [i.inst, i])
-            ),
+            instanceInfoById:
+              info.instanceInfo != null
+                ? new Map(info.instanceInfo.map((i) => [i.inst, i]))
+                : undefined,
             group,
           });
         });
@@ -79,11 +79,18 @@ export class H5000Input {
         this.websocket.send(
           JSON.stringify({
             DataReq: flatMap(msg.DataInfo, (info) =>
-              info.instanceInfo.map((instance) => ({
-                id: info.id,
-                repeat: true,
-                inst: instance.inst,
-              }))
+              info.instanceInfo != null
+                ? info.instanceInfo.map((instance) => ({
+                    id: info.id,
+                    repeat: true,
+                    inst: instance.inst,
+                  }))
+                : [
+                    {
+                      id: info.id,
+                      repeat: true,
+                    },
+                  ]
             ),
           })
         );
@@ -142,6 +149,7 @@ const GROUPS = new Map(
     ["AC Output", 36],
     ["Charger", 37],
     ["Inverter", 38],
+    ["AllData", 40],
   ].map(
     ([name, id]) => [id, { id, name }] as [number, { id: number; name: string }]
   )
