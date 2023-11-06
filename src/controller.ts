@@ -12,11 +12,13 @@ import GrafanaHTTP from "./grafana-http";
 import ConsoleJsonWriter from "./console";
 import { FilterOutput } from "./filter";
 import path from "path";
+import { DummyInput } from "./dummy-input";
 
 const INPUT_TYPE_MAP = {
   victron: VictronMQTTInput,
   h5000: H5000Input,
   ydgw: UDPYDGWInput,
+  dummy: DummyInput,
 };
 
 const OUTPUT_TYPE_MAP = {
