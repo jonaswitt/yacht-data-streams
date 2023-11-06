@@ -13,6 +13,7 @@ import ConsoleJsonWriter from "./console";
 import { FilterOutput } from "./filter";
 import path from "path";
 import { DummyInput } from "./dummy-input";
+import { UdpNjordOutput } from "./udp-njord-output";
 
 const INPUT_TYPE_MAP = {
   victron: VictronMQTTInput,
@@ -25,6 +26,7 @@ const OUTPUT_TYPE_MAP = {
   console: ConsoleJsonWriter,
   "grafana-live": GrafanaHTTP,
   influxdb: InfluxOutput,
+  "udp-njord": UdpNjordOutput,
 };
 
 type Config = {
