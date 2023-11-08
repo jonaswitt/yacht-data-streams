@@ -54,9 +54,21 @@ export class Controller {
     this.configFilePath = configFilePath;
 
     this.readConfig().then(async () => {
-      for await (const e of fs.promises.watch(this.configFilePath)) {
-        if (await this.readConfig()) {
-          console.log("Config file changed, reloaded");
+      while (true) {
+        for await (const e of fs.promises.watch(this.configFilePath)) {
+          let retries = 0;
+          while (retries < 3) {
+            try {
+              if (await this.readConfig()) {
+                console.log("Config file changed, reloaded");
+              }
+              break;
+            } catch (ex) {
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+          }
+          // renew watch
+          break;
         }
       }
     });
