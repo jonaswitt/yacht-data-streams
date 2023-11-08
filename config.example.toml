@@ -42,3 +42,13 @@ url = "http://192.168.1.4:8086"
 org = "org"
 token = ""
 bucket = ""
+
+[[output.file]]
+filename = "influx/test.%DATE%"
+frequency = "hourly"
+date_format = "YYYY-MM-DD_HH-mm"
+size = "10M"
+max_logs = "5d"
+extension = ".log"
+audit_file = "influx/audit.json"
+create_symlink = true
