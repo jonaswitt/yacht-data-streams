@@ -7,10 +7,23 @@ export class UdpNjordOutput {
   private port: number;
   private socket: dgram.Socket;
 
-  constructor({ port, address }: { port: number; address?: string }) {
+  constructor({
+    port,
+    address,
+    broadcast = true,
+  }: {
+    port: number;
+    address?: string;
+    broadcast?: boolean;
+  }) {
     this.address = address;
     this.port = port;
     this.socket = dgram.createSocket("udp4");
+    if (broadcast) {
+      this.socket.bind(undefined, undefined, () => {
+        this.socket.setBroadcast(true);
+      });
+    }
     this.socket.unref();
   }
 
