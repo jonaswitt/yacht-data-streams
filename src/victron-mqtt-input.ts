@@ -43,7 +43,9 @@ export class VictronMQTTInput {
         // );
 
         if (instanceId == null) {
-          const keepalive = topic.match(/N\/(\w+)\/keepalive/);
+          const keepalive = topic.match(
+            /N\/(\w+)\/(keepalive|system\/0\/Serial)/
+          );
           if (keepalive != null) {
             instanceId = keepalive[1];
             this.source.publish(`R/${instanceId}/keepalive`, "", (err) => {
