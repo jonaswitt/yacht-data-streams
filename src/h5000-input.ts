@@ -4,7 +4,17 @@ import { RawPoint } from "./types";
 import he from "he";
 
 export class H5000Input {
-  private websocket: WebSocket;
+  private url: string;
+
+  private measurement: string;
+
+  private shouldBeConnected = true;
+
+  private websocketPromise: Promise<WebSocket> | undefined;
+
+  private numConnectionAttempts = 0;
+
+  private websocket: WebSocket | undefined;
 
   private groupByDataId: Map<number, { name: string; id: number }> = new Map();
 
@@ -19,99 +29,152 @@ export class H5000Input {
     url: string;
     measurement?: string;
   }) {
-    this.websocket = new WebSocket(url);
+    this.url = url;
+    this.measurement = measurement;
 
-    this.websocket.on("error", console.error);
+    this.connect().catch(() => {});
+  }
 
-    this.websocket.on("open", () => {
-      console.log("Connected to H5000 websocket");
-      this.websocket.send(JSON.stringify({ DataListReq: { group: 40 } }));
-    });
+  public async connect() {
+    this.shouldBeConnected = true;
 
-    this.websocket.on("message", (data) => {
-      const msg = JSON.parse(data.toString("utf-8"));
-      //   console.log(msg);
+    if (this.websocketPromise != null) {
+      return this.websocketPromise;
+    }
 
-      if (msg.Data != null) {
-        msg.Data.forEach((point) => {
-          const data = this.dataById.get(point.id);
-          if (data == null || !point.valid) {
-            return;
+    this.websocketPromise = this.connectInternal();
+
+    return this.websocketPromise;
+  }
+
+  private async connectInternal() {
+    if (this.websocket != null) {
+      return this.websocket;
+    }
+
+    return new Promise<WebSocket>((resolve, reject) => {
+      this.numConnectionAttempts += 1;
+
+      this.websocket = new WebSocket(this.url);
+
+      this.websocket.on("open", () => {
+        console.log("H5000 websocket connected");
+        this.websocket.send(JSON.stringify({ DataListReq: { group: 40 } }));
+        this.numConnectionAttempts = 0;
+        resolve(this.websocket);
+      });
+
+      this.websocket.on("message", (data) => {
+        const msg = JSON.parse(data.toString("utf-8"));
+        //   console.log(msg);
+
+        if (msg.Data != null) {
+          msg.Data.forEach((point) => {
+            const data = this.dataById.get(point.id);
+            if (data == null || !point.valid) {
+              return;
+            }
+
+            const instance = data.instanceInfoById?.get(point.inst);
+            //   const influxPoint = new Point(measurement).timestamp(new Date());
+            //   influxPoint.tag("instance", instance?.str ?? data.inst.toString());
+            //   influxPoint.floatField(`${data.group.name}/${data.sname}`, point.val);
+
+            let name = he.decode(data.lname);
+            if (data.unit?.length) {
+              name += `, ${he.decode(data.unit).replace("°", "deg")}`;
+            }
+
+            this.onPoint?.({
+              measurement: this.measurement,
+              timestamp: new Date(),
+              tags: {
+                instance: instance?.str ?? data.inst?.toString(),
+              },
+              fields: {
+                [name]: point.val,
+              },
+            });
+          });
+        } else if (msg.DataList != null) {
+          const group = GROUPS.get(msg.DataList.groupId);
+          if (group != null) {
+            msg.DataList.list.forEach((id) => {
+              this.groupByDataId.set(id, group);
+            });
           }
 
-          const instance = data.instanceInfoById?.get(point.inst);
-          //   const influxPoint = new Point(measurement).timestamp(new Date());
-          //   influxPoint.tag("instance", instance?.str ?? data.inst.toString());
-          //   influxPoint.floatField(`${data.group.name}/${data.sname}`, point.val);
-
-          let name = he.decode(data.lname);
-          if (data.unit?.length) {
-            name += `, ${he.decode(data.unit).replace("°", "deg")}`;
-          }
-
-          this.onPoint?.({
-            measurement,
-            timestamp: new Date(),
-            tags: {
-              instance: instance?.str ?? data.inst?.toString(),
-            },
-            fields: {
-              [name]: point.val,
-            },
+          this.websocket.send(
+            JSON.stringify({ DataInfoReq: msg.DataList.list })
+          );
+        } else if (msg.DataInfo != null) {
+          msg.DataInfo.forEach((info) => {
+            const group = this.groupByDataId.get(info.id);
+            this.dataById.set(info.id, {
+              ...info,
+              instanceInfoById:
+                info.instanceInfo != null
+                  ? new Map(info.instanceInfo.map((i) => [i.inst, i]))
+                  : undefined,
+              group,
+            });
           });
-        });
-      } else if (msg.DataList != null) {
-        const group = GROUPS.get(msg.DataList.groupId);
-        if (group != null) {
-          msg.DataList.list.forEach((id) => {
-            this.groupByDataId.set(id, group);
-          });
-        }
 
-        this.websocket.send(JSON.stringify({ DataInfoReq: msg.DataList.list }));
-      } else if (msg.DataInfo != null) {
-        msg.DataInfo.forEach((info) => {
-          const group = this.groupByDataId.get(info.id);
-          this.dataById.set(info.id, {
-            ...info,
-            instanceInfoById:
-              info.instanceInfo != null
-                ? new Map(info.instanceInfo.map((i) => [i.inst, i]))
-                : undefined,
-            group,
-          });
-        });
-
-        this.websocket.send(
-          JSON.stringify({
-            DataReq: flatMap(msg.DataInfo, (info) =>
-              info.instanceInfo != null
-                ? info.instanceInfo.map((instance) => ({
-                    id: info.id,
-                    repeat: true,
-                    inst: instance.inst,
-                  }))
-                : [
-                    {
+          this.websocket.send(
+            JSON.stringify({
+              DataReq: flatMap(msg.DataInfo, (info) =>
+                info.instanceInfo != null
+                  ? info.instanceInfo.map((instance) => ({
                       id: info.id,
                       repeat: true,
-                    },
-                  ]
-            ),
-          })
-        );
-      }
-    });
+                      inst: instance.inst,
+                    }))
+                  : [
+                      {
+                        id: info.id,
+                        repeat: true,
+                      },
+                    ]
+              ),
+            })
+          );
+        }
+      });
 
-    // setTimeout(() => {
-    //   console.log(
-    //     JSON.stringify(fromPairs(Array.from(this.dataById)), null, 2)
-    //   );
-    // }, 1000);
+      this.websocket.on("error", (e) => {
+        console.error("H5000 connection error", e.message);
+        this.websocket = undefined;
+        this.websocketPromise = undefined;
+        reject(e);
+      });
+
+      this.websocket.on("close", (code, msg) => {
+        this.websocket = undefined;
+        this.websocketPromise = undefined;
+        this.triggerReconnect();
+      });
+    });
   }
 
   public close() {
+    this.shouldBeConnected = false;
     this.websocket.close();
+    this.websocket = undefined;
+    this.websocketPromise = undefined;
+    this.numConnectionAttempts = 0;
+  }
+
+  private triggerReconnect() {
+    if (!this.shouldBeConnected) {
+      return;
+    }
+
+    const delay = Math.min(60, 2 ** Math.max(1, this.numConnectionAttempts));
+    console.log(`H5000 reconnecting in ${delay} sec...`);
+
+    setTimeout(() => {
+      this.connect().catch(() => undefined);
+    }, delay * 1000);
   }
 }
 
