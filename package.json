@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "license": "MIT",
   "bin": {
-    "yacht-data-streams": "./build/bin/yacht-data-streams.js"
+    "yacht-data-streams": "./build/bin/yacht-data-streams.js",
+    "h5000-waypoint": "./build/bin/h5000-waypoint.js"
   },
   "scripts": {
     "clean": "rm -rf build",
