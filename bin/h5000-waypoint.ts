@@ -106,7 +106,7 @@ websocket.on("message", (data) => {
         mkVmg = lastSog * Math.cos(degToRad(lastCog - mkBearing));
 
         if (mkVmg > 0.1) {
-          mkTtg = mkRange / mkVmg;
+          mkTtg = mkRange / 1852 / mkVmg;
         }
       }
 
