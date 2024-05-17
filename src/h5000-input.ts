@@ -3,6 +3,12 @@ import WebSocket from "ws";
 import { RawPoint } from "./types";
 import he from "he";
 
+// Send a "ping" if there was no message for 30 seconds
+const NO_DATA_TIMEOUT = 30_000;
+
+// After "ping", wait 5 seconds for a "pong" or any other message
+const PONG_TIMEOUT = 5_000;
+
 export class H5000Input {
   private url: string;
 
@@ -15,6 +21,12 @@ export class H5000Input {
   private numConnectionAttempts = 0;
 
   private websocket: WebSocket | undefined;
+
+  private lastPong: Date | undefined;
+
+  private noDataTimeout: NodeJS.Timeout | undefined;
+
+  private pongTimeout: NodeJS.Timeout | undefined;
 
   private groupByDataId: Map<number, { name: string; id: number }> = new Map();
 
@@ -52,19 +64,71 @@ export class H5000Input {
       return this.websocket;
     }
 
+    const setNoDataTimeout = () => {
+      if (this.pongTimeout != null) {
+        clearTimeout(this.pongTimeout);
+      }
+      if (this.noDataTimeout != null) {
+        clearTimeout(this.noDataTimeout);
+      }
+      this.noDataTimeout = setTimeout(() => {
+        if (
+          this.lastPong != null &&
+          this.lastPong.valueOf() > Date.now() - NO_DATA_TIMEOUT / 2
+        ) {
+          // Ok, data received since timeout was set
+          return;
+        }
+
+        console.log("H5000 no data timeout elapsed, sending ping");
+        if (this.pongTimeout != null) {
+          clearTimeout(this.pongTimeout);
+        }
+        this.pongTimeout = setTimeout(() => {
+          if (
+            this.lastPong != null &&
+            this.lastPong.valueOf() > Date.now() - PONG_TIMEOUT
+          ) {
+            // Ok, data received since timeout was set
+            return;
+          }
+
+          console.log(
+            "H5000 pong timeout elapsed, closing/reconnecting websocket"
+          );
+          this.websocket?.close();
+        }, PONG_TIMEOUT);
+
+        // Send ping (two ways) - H5000 does not seem to respond to ws pings
+        // but we'll try anyway. The SettingListReq request should also trigger
+        // a response from the server.
+        this.websocket?.ping();
+        this.websocket.send(
+          JSON.stringify({ SettingListReq: [{ groupId: 2 }] })
+        );
+      }, NO_DATA_TIMEOUT);
+    };
+
     return new Promise<WebSocket>((resolve, reject) => {
       this.numConnectionAttempts += 1;
 
-      this.websocket = new WebSocket(this.url);
+      this.websocket = new WebSocket(this.url, undefined, {
+        handshakeTimeout: 5_000,
+      });
 
       this.websocket.on("open", () => {
         console.log("H5000 websocket connected");
         this.websocket.send(JSON.stringify({ DataListReq: { group: 40 } }));
         this.numConnectionAttempts = 0;
         resolve(this.websocket);
+
+        setNoDataTimeout();
       });
 
       this.websocket.on("message", (data) => {
+        this.lastPong = new Date();
+        setNoDataTimeout();
+
         const msg = JSON.parse(data.toString("utf-8"));
         //   console.log(msg);
 
@@ -141,6 +205,10 @@ export class H5000Input {
         }
       });
 
+      this.websocket.on("pong", () => {
+        this.lastPong = new Date();
+      });
+
       this.websocket.on("error", (e) => {
         console.error("H5000 connection error", e.message);
         this.websocket = undefined;
@@ -151,6 +219,14 @@ export class H5000Input {
       this.websocket.on("close", (code, msg) => {
         this.websocket = undefined;
         this.websocketPromise = undefined;
+        if (this.noDataTimeout != null) {
+          clearTimeout(this.noDataTimeout);
+        }
+        this.noDataTimeout = undefined;
+        if (this.pongTimeout != null) {
+          clearTimeout(this.pongTimeout);
+        }
+        this.pongTimeout = undefined;
         this.triggerReconnect();
       });
     });
