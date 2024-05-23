@@ -1,4 +1,9 @@
 /log
+/influx
+/jsonl
 *.tgz
 *.dat
 *.csv 
+!mapping.example.csv
+config.toml
+
