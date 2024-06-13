@@ -40,7 +40,10 @@ export class H5000Websocket extends EventEmitter {
   }
 
   private send(data: any) {
-    if (this.websocket.readyState !== WebSocket.OPEN) {
+    if (
+      this.websocket == null ||
+      this.websocket.readyState !== WebSocket.OPEN
+    ) {
       return;
     }
     this.websocket.send(JSON.stringify(data));
@@ -201,7 +204,7 @@ export class H5000Websocket extends EventEmitter {
 
   public close() {
     this.shouldBeConnected = false;
-    this.websocket.close();
+    this.websocket?.close();
     this.websocket = undefined;
     this.websocketPromise = undefined;
     this.numConnectionAttempts = 0;
