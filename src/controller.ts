@@ -15,6 +15,7 @@ import path from "path";
 import { DummyInput } from "./dummy-input";
 import { UdpNjordOutput } from "./udp-njord-output";
 import { FileOutput } from "./file-output";
+import { WebsocketServer } from "./ws-server";
 
 const INPUT_TYPE_MAP = {
   victron: VictronMQTTInput,
@@ -29,6 +30,7 @@ const OUTPUT_TYPE_MAP = {
   influxdb: InfluxOutput,
   "udp-njord": UdpNjordOutput,
   file: FileOutput,
+  websocket: WebsocketServer,
 };
 
 type Config = {

@@ -52,3 +52,6 @@ max_logs = "5d"
 extension = ".log"
 audit_file = "influx/audit.json"
 create_symlink = true
+
+[[output.websocket]]
+port = 9001
