@@ -1,14 +1,32 @@
 import WebSocket, { Server } from "ws";
 import { RawPoint } from "./types";
 import { fromPairs, toPairs } from "lodash";
+import parseDuration from "parse-duration";
+
+type ParsedPoint = {
+  timestamp: Date;
+  records: Record<string, string | number | undefined>;
+};
 
 export class WebsocketServer {
   private port: number;
 
+  private historyMaxAge: number;
+
+  private history: ParsedPoint[] = [];
+
   private subscriptions: WebSocket[] = [];
 
-  constructor({ port }: { port: number }) {
+  constructor({
+    port,
+    historyMaxAge,
+  }: {
+    port: number;
+    historyMaxAge?: string;
+  }) {
     this.port = port;
+    this.historyMaxAge =
+      historyMaxAge != null ? parseDuration(historyMaxAge) : 0;
 
     const server = new Server({ port });
 
@@ -32,11 +50,15 @@ export class WebsocketServer {
       ws.on("close", () => {
         this.subscriptions = this.subscriptions.filter((s) => s !== ws);
       });
+
+      for (let i = this.history.length - 1; i >= 0; i -= 1) {
+        ws.send(JSON.stringify(this.history[i]));
+      }
     });
   }
 
   write(point: RawPoint) {
-    const jsonMsg = JSON.stringify({
+    const parsedPoint: ParsedPoint = {
       timestamp: point.timestamp,
       records: point.tags?.instance
         ? fromPairs(
@@ -46,9 +68,28 @@ export class WebsocketServer {
             ])
           )
         : point.fields,
-    });
+    };
+
+    const jsonMsg = JSON.stringify(parsedPoint);
     this.subscriptions.forEach((ws) => {
       ws.send(jsonMsg);
     });
+
+    if (this.historyMaxAge > 0) {
+      const cutoff = new Date(Date.now() - this.historyMaxAge);
+      if (
+        this.history.length > 0 &&
+        this.history[0].timestamp.valueOf() < cutoff.valueOf() - 60 * 1000
+      ) {
+        const idx = this.history.findIndex(
+          (p) => p.timestamp.valueOf() > cutoff.valueOf()
+        );
+        if (idx > 0) {
+          this.history = this.history.slice(idx);
+        }
+      }
+
+      this.history.push(parsedPoint);
+    }
   }
 }

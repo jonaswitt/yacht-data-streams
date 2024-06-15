@@ -22,6 +22,7 @@
     "minimist": "^1.2.7",
     "mqtt": "^4.3.7",
     "node-fetch": "2",
+    "parse-duration": "^1.1.0",
     "toml": "^3.0.0",
     "ws": "^8.11.0"
   },

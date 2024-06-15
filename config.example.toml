@@ -54,4 +54,5 @@ audit_file = "influx/audit.json"
 create_symlink = true
 
 [[output.websocket]]
+historyMaxAge = "10m"
 port = 9001
