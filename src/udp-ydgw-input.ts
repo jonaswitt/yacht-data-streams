@@ -68,7 +68,10 @@ export class UDPYDGWInput {
       console.error(error.stack);
     });
 
-    this.socket = dgram.createSocket("udp4");
+    this.socket = dgram.createSocket({
+      type: "udp4",
+      reuseAddr: true,
+    });
     this.socket.on("message", (msg, info) => {
       const msgString = msg.toString("ascii");
 
