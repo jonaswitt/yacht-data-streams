@@ -1,5 +1,7 @@
 # Yacht Data Streams
 
+![NPM Version](https://img.shields.io/npm/v/yacht-data-streams)
+
 A special-purpose streaming data collection and forwarding tool similar to [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/), with a focus on data sources that may be found on sailing yachts.
 
 ## Supported Data Sources
