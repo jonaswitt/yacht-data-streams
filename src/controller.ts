@@ -16,12 +16,14 @@ import { DummyInput } from "./dummy-input";
 import { UdpNjordOutput } from "./udp-njord-output";
 import { FileOutput } from "./file-output";
 import { WebsocketServer } from "./ws-server";
+import { CortexInput } from "./cortex-input";
 
 const INPUT_TYPE_MAP = {
   victron: VictronMQTTInput,
   h5000: H5000Input,
   ydgw: UDPYDGWInput,
   dummy: DummyInput,
+  cortex: CortexInput,
 };
 
 const OUTPUT_TYPE_MAP = {

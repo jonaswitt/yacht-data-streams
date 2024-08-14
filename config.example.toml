@@ -26,6 +26,9 @@ gzip = true
 url = "ws://192.168.1.2:8080"
 measurement = "h5000"
 
+[[input.cortex]]
+host = "10.1.1.1"
+
 [mapping]
 mappingFile = "mapping.csv"
 

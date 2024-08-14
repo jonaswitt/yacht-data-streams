@@ -10,6 +10,8 @@ A special-purpose streaming data collection and forwarding tool similar to [Tele
 
 - [Yacht Device YDWG-02 and YDEN-02](https://www.yachtd.com/products/wifi_gateway.html) via UDP and using [canboat](https://github.com/canboat/canboatjs) to decode NMEA 2000 data
 
+- [Vesper Cortex](http://www.vespermarine.com), via Websocket
+
 ## Supported Destinations
 
 - [InfluxDB v2](https://www.influxdata.com/)
