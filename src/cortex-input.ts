@@ -57,7 +57,7 @@ export class CortexInput extends CortexWebsocket {
               measurement: this.measurement,
               timestamp: new Date(),
               fields: {
-                "Barometric Pressure": payload.internalPressure / 10,
+                "Barometric Pressure": payload.internalPressure / 100,
               },
             });
           }
