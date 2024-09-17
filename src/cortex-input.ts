@@ -33,6 +33,8 @@ export class CortexInput extends CortexWebsocket {
             fields: {
               "GPS Latitude": lat,
               "GPS Longitude": lon,
+              COG: payload.cog,
+              SOG: payload.sog,
             },
           });
           break;
