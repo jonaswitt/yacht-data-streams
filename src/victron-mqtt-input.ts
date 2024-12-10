@@ -102,7 +102,6 @@ export class VictronMQTTInput {
 
               this.onPoint?.({
                 measurement,
-                timestamp: new Date(),
                 fields: {
                   [field]: messageBody.value,
                 },

@@ -79,7 +79,6 @@ export class UDPYDGWInput {
       if (chunk) {
         const p: RawPoint = {
           measurement,
-          timestamp: new Date(),
           tags: {
             pgn: chunk.pgn.toString(),
             source: chunk.src.toString(),

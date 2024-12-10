@@ -42,7 +42,6 @@ export class CortexInput extends CortexWebsocket {
         case "InternalHeading":
           this.onPoint?.({
             measurement: this.measurement,
-            timestamp: new Date(),
             fields: {
               Heading: payload.heading,
             },
@@ -56,7 +55,6 @@ export class CortexInput extends CortexWebsocket {
           ) {
             this.onPoint?.({
               measurement: this.measurement,
-              timestamp: new Date(),
               fields: {
                 "Barometric Pressure": payload.internalPressure / 100,
               },

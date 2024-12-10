@@ -15,7 +15,6 @@ export class DummyInput {
     this.interval = setInterval(() => {
       this.onPoint({
         measurement,
-        timestamp: new Date(),
         fields: {
           random: Math.random(),
           fixed: 1,

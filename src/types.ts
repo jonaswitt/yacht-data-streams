@@ -15,7 +15,7 @@ export type PGN = {
 
 export type RawPoint = {
   measurement: string;
-  timestamp: Date;
+  timestamp?: Date;
   tags?: Record<string, string>;
   fields: Record<string, string | number>;
 };

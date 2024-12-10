@@ -54,6 +54,8 @@ export class Controller {
 
   private outputs: Output[] = [];
 
+  private localDateTimeOffset: number | undefined;
+
   public constructor(configFilePath: string) {
     this.configFilePath = configFilePath;
 
@@ -112,6 +114,7 @@ export class Controller {
         return (newConfig.input?.[inputType] ?? []).map((inputConfig: any) => {
           const input = new InputClazz(inputConfig);
           input.onPoint = this.handlePoint.bind(this);
+          (input as H5000Input).onDateTime = this.handleDateTime.bind(this);
           return input;
         });
       }
@@ -148,6 +151,14 @@ export class Controller {
   }
 
   private async handlePoint(point: RawPoint) {
+    if (point.timestamp == null) {
+      if (this.localDateTimeOffset != null) {
+        point.timestamp = new Date(Date.now() + this.localDateTimeOffset);
+      } else {
+        point.timestamp = new Date();
+      }
+    }
+
     const processed = this.processors.reduce(
       (acc, plugin) => plugin.process(acc),
       [point]
@@ -162,5 +173,9 @@ export class Controller {
         }
       }
     }
+  }
+
+  private handleDateTime(timestamp: Date) {
+    this.localDateTimeOffset = timestamp.valueOf() - Date.now();
   }
 }
