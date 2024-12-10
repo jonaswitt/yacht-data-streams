@@ -47,6 +47,7 @@ export class CortexInput extends CortexWebsocket {
               Heading: payload.heading,
             },
           });
+          break;
 
         case "BarometricPressure":
           if (
@@ -61,6 +62,7 @@ export class CortexInput extends CortexWebsocket {
               },
             });
           }
+          break;
       }
     });
   }
