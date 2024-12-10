@@ -20,10 +20,14 @@ A special-purpose streaming data collection and forwarding tool similar to [Tele
 
 - [Grafana Live](https://grafana.com/docs/grafana/latest/setup-grafana/set-up-grafana-live/)
 
+- Log to log file (with file rotation) in JSON line format
+
+- Log raw NMEA 2000 data to log file (YDWG-02 and YDEN-02 sources only)
+
+- Websocket server serving data in JSON format
+
+- Send JSON-formatted data via UDP, e.g. for use with [Njord Analytics](https://www.sailnjord.com)
+
 ## Value Mapping
 
 All data from configured data sources is written to InfluxDB/Grafana as is. Optionally, supports mapping selected measurement/field/tag combinations to another measurement/field/tag; for example, to define a more user-friendly variable nomenclature on the basis of the relatively technical Victron/NMEA 2000 fields and tags.
-
-## Logging
-
-Supports logging of all received YDWG-02 / YDEN-02 data to text file (with log rotation), for debugging/analysis purposes.
