@@ -51,9 +51,18 @@ export class WebsocketServer {
         this.subscriptions = this.subscriptions.filter((s) => s !== ws);
       });
 
-      for (let i = this.history.length - 1; i >= 0; i -= 1) {
-        ws.send(JSON.stringify(this.history[i]));
-      }
+      (async () => {
+        const sendHistory = Array.from(this.history);
+        // Wait before sending history to allow client to show some new data first
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        for (let i = sendHistory.length - 1; i >= 0; i -= 1) {
+          // Wait briefly every now and then to let new data be sent in between old data
+          if (i % 100 === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          }
+          ws.send(JSON.stringify(sendHistory[i]));
+        }
+      })();
     });
   }
 
