@@ -23,7 +23,9 @@ const input = new VictronMQTTInput({
 input.onPoint = (point) => {
   for (const [key, value] of Object.entries(point.fields)) {
     console.log(
-      `${point.timestamp.toISOString()}\t${JSON.stringify(key)}\t${value}`
+      `${(point.timestamp ?? new Date()).toISOString()}\t${JSON.stringify(
+        key
+      )}\t${value}`
     );
   }
 };
