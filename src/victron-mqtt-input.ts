@@ -6,16 +6,21 @@ export class VictronMQTTInput {
 
   public onPoint: ((point: RawPoint) => void) | undefined;
 
+  public onInstanceId: ((instanceId: string) => void) | undefined;
+
   public constructor({
     url,
     clientId = "victron-influx-bridge",
     measurement = "victron",
+    subscribeTopics = ["#"],
     tagInstance,
     tagDevice,
   }: {
     url: string;
     clientId?: string;
     measurement?: string;
+    /** Topics to subscribe to upon connection, defaults to ["#"] for all topics. Subscribe to "N/+/system/0/Serial" at least to receive the onInstanceId callback.  */
+    subscribeTopics?: string[];
     tagInstance?: boolean | string;
     tagDevice?: boolean;
   }) {
@@ -27,11 +32,7 @@ export class VictronMQTTInput {
     this.source.on("connect", () => {
       console.log("MQTT connected");
       instanceId = undefined;
-      this.source.subscribe(["#"], (err, granted) => {
-        if (err != null) {
-          console.log(err, granted);
-        }
-      });
+      this.subscribe(subscribeTopics);
     });
 
     let keepaliveInterval;
@@ -61,6 +62,8 @@ export class VictronMQTTInput {
                 }
               );
             }, 30000);
+
+            this.onInstanceId?.(instanceId);
           }
         }
 
@@ -134,6 +137,17 @@ export class VictronMQTTInput {
 
     this.source.on("reconnect", () => {
       console.log("MQTT reconnect");
+    });
+  }
+
+  public subscribe(topics: string[]) {
+    if (topics.length === 0) {
+      return;
+    }
+    this.source.subscribe(topics, (err, granted) => {
+      if (err != null) {
+        console.log(err, granted);
+      }
     });
   }
 
