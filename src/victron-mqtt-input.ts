@@ -2,7 +2,9 @@ import { connect, MqttClient } from "mqtt";
 import { RawPoint } from "./types";
 
 export class VictronMQTTInput {
-  private source: MqttClient;
+  public source: MqttClient;
+
+  public onMessage: ((topic: string, message: any) => void) | undefined;
 
   public onPoint: ((point: RawPoint) => void) | undefined;
 
@@ -76,6 +78,7 @@ export class VictronMQTTInput {
 
           try {
             const messageBody = JSON.parse(message.toString());
+            this?.onMessage?.(topic, messageBody);
             if (
               messageBody.value != null &&
               field !== "keepalive" &&
