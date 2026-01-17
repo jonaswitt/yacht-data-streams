@@ -1,6 +1,6 @@
 {
   "name": "yacht-data-streams",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "license": "MIT",
   "bin": {
     "yacht-data-streams": "./build/bin/yacht-data-streams.js",
