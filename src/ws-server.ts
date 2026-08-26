@@ -17,6 +17,8 @@ export class WebsocketServer {
 
   private subscriptions: WebSocket[] = [];
 
+  private server: Server;
+
   constructor({
     port,
     historyMaxAge,
@@ -29,6 +31,7 @@ export class WebsocketServer {
       historyMaxAge != null ? parseDuration(historyMaxAge) : 0;
 
     const server = new Server({ port });
+    this.server = server;
 
     server.on("listening", () => {
       console.log(`Websocket listening on ws://0.0.0.0:${this.port}`);
@@ -100,5 +103,11 @@ export class WebsocketServer {
 
       this.history.push(parsedPoint);
     }
+  }
+
+  close() {
+    this.subscriptions.forEach((ws) => ws.terminate());
+    this.subscriptions = [];
+    this.server.close();
   }
 }

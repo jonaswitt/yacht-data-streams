@@ -1,5 +1,5 @@
 import fs from "fs";
-import { entries, flatMap, isEqual, keys } from "lodash";
+import { flatMap, isEqual, keys } from "lodash";
 import toml from "toml";
 import { VictronMQTTInput } from "./victron-mqtt-input";
 import { Input, Output, PointProcessor, RawPoint } from "./types";
@@ -45,16 +45,56 @@ type Config = {
   };
 };
 
+type Managed<T> = {
+  type: string;
+  config: any;
+  instance: T;
+};
+
+// Matches the desired config tables against the instances we already have and
+// reuses every one whose table is unchanged, so a config edit only tears down
+// what actually changed. Rebuilding everything on each reload dropped live
+// connections (MQTT, Cortex) and, worse, recreated the websocket server while
+// the previous one still held its port.
+//
+// Instances that are no longer wanted are closed *before* the replacements are
+// constructed, so a changed output can rebind the same port.
+const reconcile = <T>(
+  existing: Managed<T>[],
+  desired: Array<{ type: string; config: any }>,
+  create: (type: string, config: any) => T
+): Managed<T>[] => {
+  const pool = [...existing];
+  const reused = desired.map(({ type, config }) => {
+    const idx = pool.findIndex(
+      (e) => e.type === type && isEqual(e.config, config)
+    );
+    return idx >= 0 ? pool.splice(idx, 1)[0] : undefined;
+  });
+
+  for (const stale of pool) {
+    try {
+      (stale.instance as { close?: () => void }).close?.();
+    } catch (ex) {
+      console.warn(ex);
+    }
+  }
+
+  return desired.map(
+    (d, i) => reused[i] ?? { ...d, instance: create(d.type, d.config) }
+  );
+};
+
 export class Controller {
   private configFilePath: string;
 
   private config: Config | undefined;
 
-  private inputs: Input[] = [];
+  private inputs: Managed<Input>[] = [];
 
   private processors: PointProcessor[] = [];
 
-  private outputs: Output[] = [];
+  private outputs: Managed<Output>[] = [];
 
   private localDateTimeOffset: number | undefined;
 
@@ -109,16 +149,19 @@ export class Controller {
       throw new Error(`Invalid output types: ${invalidOutputTypes.join(", ")}`);
     }
 
-    this.inputs.map((i) => i.close?.());
-    this.inputs = flatMap(
-      entries(INPUT_TYPE_MAP),
-      ([inputType, InputClazz]) => {
-        return (newConfig.input?.[inputType] ?? []).map((inputConfig: any) => {
-          const input = new InputClazz(inputConfig);
-          input.onPoint = this.handlePoint.bind(this);
-          (input as H5000Input).onDateTime = this.handleDateTime.bind(this);
-          return input;
-        });
+    this.inputs = reconcile(
+      this.inputs,
+      flatMap(keys(INPUT_TYPE_MAP), (inputType) =>
+        (newConfig.input?.[inputType] ?? []).map((config: any) => ({
+          type: inputType,
+          config,
+        }))
+      ),
+      (inputType, inputConfig) => {
+        const input = new INPUT_TYPE_MAP[inputType](inputConfig);
+        input.onPoint = this.handlePoint.bind(this);
+        (input as H5000Input).onDateTime = this.handleDateTime.bind(this);
+        return input;
       }
     );
 
@@ -135,19 +178,20 @@ export class Controller {
         : []),
     ];
 
-    this.outputs.map((o) => o.close?.());
-    this.outputs = flatMap(
-      entries(OUTPUT_TYPE_MAP),
-      ([outputType, OutputClazz]) => {
-        return (newConfig.output?.[outputType] ?? []).map(
-          ({ namepass, ...outputConfig }) => {
-            const output = new OutputClazz(outputConfig);
-            if (namepass != null) {
-              return new FilterOutput(output, { namepass });
-            }
-            return output;
-          }
-        );
+    this.outputs = reconcile(
+      this.outputs,
+      flatMap(keys(OUTPUT_TYPE_MAP), (outputType) =>
+        (newConfig.output?.[outputType] ?? []).map((config: any) => ({
+          type: outputType,
+          config,
+        }))
+      ),
+      (outputType, { namepass, ...outputConfig }) => {
+        const output = new OUTPUT_TYPE_MAP[outputType](outputConfig);
+        if (namepass != null) {
+          return new FilterOutput(output, { namepass });
+        }
+        return output;
       }
     );
   }
@@ -167,7 +211,7 @@ export class Controller {
     );
 
     for (const p of processed) {
-      for (const output of this.outputs) {
+      for (const { instance: output } of this.outputs) {
         try {
           await output.write(p);
         } catch (ex) {
