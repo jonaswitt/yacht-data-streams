@@ -26,6 +26,9 @@
     "toml": "^3.0.0",
     "ws": "^8.11.0"
   },
+  "optionalDependencies": {
+    "socketcan": "^4.0.3"
+  },
   "devDependencies": {
     "@types/he": "^1.2.2",
     "@types/lodash": "^4.14.196",
