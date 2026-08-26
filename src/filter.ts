@@ -33,4 +33,8 @@ export class FilterOutput implements Output {
 
     return this.output.write(point);
   }
+
+  public close() {
+    this.output.close?.();
+  }
 }
