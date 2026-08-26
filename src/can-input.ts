@@ -111,26 +111,36 @@ export class CANInput {
     }
 
     try {
-      this.channel = this.socketcan.createRawChannelWithOptions(
+      // Held locally as well so the listeners below can tell whether they still
+      // belong to the current channel. The no-data watchdog stops one channel
+      // and immediately opens another, and a late event from the old one would
+      // otherwise clear the new channel and start a duplicate, untracked
+      // reader feeding the same parser.
+      const channel = this.socketcan.createRawChannelWithOptions(
         this.interfaceName,
         { non_block_send: true }
       );
+      this.channel = channel;
 
-      this.channel.addListener("onStopped", () => {
-        if (this.channel != null && !this.closed) {
-          console.error(
-            `CAN interface ${this.interfaceName} stopped, reconnecting`
-          );
-          this.channel = undefined;
-          this.scheduleReconnect();
+      channel.addListener("onStopped", () => {
+        if (this.channel !== channel || this.closed) {
+          return;
         }
+        console.error(
+          `CAN interface ${this.interfaceName} stopped, reconnecting`
+        );
+        this.channel = undefined;
+        this.scheduleReconnect();
       });
 
-      this.channel.addListener("onMessage", (msg) => {
+      channel.addListener("onMessage", (msg) => {
+        if (this.channel !== channel) {
+          return;
+        }
         this.handleMessage(msg);
       });
 
-      this.channel.start();
+      channel.start();
       this.lastDataReceived = Date.now();
       console.log("Listening on CAN interface", this.interfaceName);
     } catch (ex) {
@@ -150,7 +160,20 @@ export class CANInput {
     }, RECONNECT_DELAY);
   }
 
-  private handleMessage(msg: { id: number; data: Buffer }) {
+  private handleMessage(msg: {
+    id: number;
+    ext?: boolean;
+    rtr?: boolean;
+    data: Buffer;
+  }) {
+    // NMEA 2000 uses 29-bit extended data frames exclusively. A standard or
+    // remote frame carries an id parseCanId would happily turn into a bogus
+    // PGN. Only skip when the flags say so, so that a binding which does not
+    // report them keeps behaving as before.
+    if (msg.ext === false || msg.rtr === true) {
+      return;
+    }
+
     this.lastDataReceived = Date.now();
 
     if (this.logStream != null) {
