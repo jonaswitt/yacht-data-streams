@@ -5,6 +5,7 @@ import { VictronMQTTInput } from "./victron-mqtt-input";
 import { Input, Output, PointProcessor, RawPoint } from "./types";
 import { H5000Input } from "./h5000-input";
 import { UDPYDGWInput } from "./udp-ydgw-input";
+import { CANInput } from "./can-input";
 import { Mapper } from "./mapping";
 import { InfluxOutput } from "./influx-output";
 import GrafanaWS from "./grafana-ws";
@@ -22,6 +23,7 @@ const INPUT_TYPE_MAP = {
   victron: VictronMQTTInput,
   h5000: H5000Input,
   ydgw: UDPYDGWInput,
+  can: CANInput,
   dummy: DummyInput,
   cortex: CortexInput,
 };

@@ -22,6 +22,24 @@
 # create_symlink = true
 # gzip = true
 
+# [[input.can]]
+# interface = "can0"
+# measurement = "nmea"
+# # reconnect if no frame is seen for this many seconds (0 = disabled)
+# noDataReceivedTimeout = 0
+
+# [input.can.logFile]
+# # candump format, replayable with canboatjs
+# filename = "log/can.%DATE%"
+# frequency = "hourly"
+# date_format = "YYYY-MM-DD_HH-mm"
+# size = "10M"
+# max_logs = "5d"
+# extension = ".log"
+# audit_file = "log/can-audit.json"
+# create_symlink = true
+# gzip = true
+
 # [[input.h5000]]
 # url = "ws://192.168.1.2:8080"
 # measurement = "h5000"
