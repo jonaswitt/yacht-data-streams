@@ -45,6 +45,19 @@ const CATALOG: Record<number, KeyMeta> = {};
       };
 }
 
+// Keys present in the canboat GitHub source (174 keys) but missing from every
+// published @canboat/pgns (154 keys, checked 3.2.0 and 6.0.2). Bumping the dep
+// does not add them, so bundle them here. Remove once @canboat/pgns ships them.
+const EXTRA_CATALOG: Record<number, KeyMeta> = {
+  208: { name: "Trip 2 Distance", res: 0.01, unit: "m", bits: 32 },
+  266: { name: "Trip 1 Speed Max", res: 0.01, unit: "m/s", bits: 16 },
+  267: { name: "Trip 2 Time", res: 0.001, unit: "s", bits: 32 }, // res corrected via RES_OVERRIDE
+  268: { name: "Trip 2 Speed Max", res: 0.01, unit: "m/s", bits: 16 },
+  269: { name: "Trip 2 Speed Avg", res: 0.01, unit: "m/s", bits: 16 },
+};
+for (const [k, v] of Object.entries(EXTRA_CATALOG))
+  if (!CATALOG[+k]) CATALOG[+k] = v;
+
 // canboat's Signed flag AND not a compass direction (@canboat/pgns omits Signed,
 // so this is precomputed from the canboat definitions). See header note.
 const SIGNED_KEYS = new Set<number>([0, 11, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 50, 52, 53, 56, 57, 58, 59, 60, 68, 81, 83, 102, 103, 104, 111, 117, 124, 125, 130, 132, 152, 155, 156, 157, 158, 263, 264, 270, 271, 273, 276, 277, 278, 279, 280, 281, 285, 291, 296, 297, 299, 300, 301, 302, 308, 310, 312, 313, 314, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 337, 338, 364, 365, 380, 381, 382, 383, 385, 386, 387, 409, 410, 411, 412]);
