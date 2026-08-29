@@ -199,9 +199,10 @@ export class CANInput {
     if (pgn.pgn === 130824) {
       const fields = this.bandg.feed(pgn.src, msg.data);
       if (fields != null && this.onPoint != null) {
+        // Leave timestamp unset (like chunkToRawPoint) so these points get the
+        // controller's centralized clock correction, same as normal CAN points.
         this.onPoint({
           measurement: this.measurement,
-          timestamp: new Date(),
           tags: { pgn: "130824", source: String(pgn.src) },
           fields,
         });
