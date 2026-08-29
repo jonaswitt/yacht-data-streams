@@ -18,6 +18,7 @@ type MappingSpec = {
   matchTags?: { [key: string]: string | RegExp };
   destinationField: string | ((match: RegExpMatchArray) => string);
   factor?: number;
+  offset?: number;
   destinationTags?: { [key: string]: string };
 };
 
@@ -111,6 +112,9 @@ export class Mapper implements PointProcessor {
             factor: data.factor?.trim()?.length
               ? parseFloat(data.factor)
               : undefined,
+            offset: data.offset?.trim()?.length
+              ? parseFloat(data.offset)
+              : undefined,
           });
         })
         .on("end", () => {
@@ -184,9 +188,13 @@ export class Mapper implements PointProcessor {
             ? spec.destinationField
             : spec.destinationField(match!);
 
+        // value * factor + offset. Offset enables affine conversions the plain
+        // factor cannot, e.g. Kelvin -> degC (factor 1, offset -273.15). Either
+        // may be omitted (factor defaults to 1, offset to 0).
         const destinationValue =
-          spec.factor != null && typeof fieldValue === "number"
-            ? fieldValue * spec.factor
+          typeof fieldValue === "number" &&
+          (spec.factor != null || spec.offset != null)
+            ? fieldValue * (spec.factor ?? 1) + (spec.offset ?? 0)
             : fieldValue;
 
         if (outFields == null) {
