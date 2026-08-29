@@ -3,6 +3,7 @@ import { parseCanId, canIdString } from "@canboat/canboatjs/lib/canId";
 import * as FileStreamRotator from "file-stream-rotator";
 import { RawPoint } from "./types";
 import { chunkToRawPoint } from "./pgn-point";
+import { BandGKeyValueDecoder } from "./bandg-130824";
 import { createReadStream, createWriteStream } from "fs";
 import { unlink } from "fs/promises";
 import { createGzip } from "node:zlib";
@@ -20,6 +21,8 @@ export class CANInput {
   private channel: any;
 
   private parser: any;
+
+  private readonly bandg = new BandGKeyValueDecoder();
 
   private logStream:
     | ReturnType<(typeof FileStreamRotator)["getStream"]>
@@ -189,6 +192,22 @@ export class CANInput {
       return;
     }
     pgn.timestamp = new Date().toISOString();
+
+    // PGN 130824 "B&G: key-value data": canboatjs does not decode its dynamic
+    // key/value list yet, so decode it ourselves and emit the scaled values,
+    // tagged by source (different B&G devices send different key subsets).
+    if (pgn.pgn === 130824) {
+      const fields = this.bandg.feed(pgn.src, msg.data);
+      if (fields != null && this.onPoint != null) {
+        // Leave timestamp unset (like chunkToRawPoint) so these points get the
+        // controller's centralized clock correction, same as normal CAN points.
+        this.onPoint({
+          measurement: this.measurement,
+          tags: { pgn: "130824", source: String(pgn.src) },
+          fields,
+        });
+      }
+    }
 
     // Returns undefined for the intermediate frames of a fast packet, and the
     // assembled message once the last frame arrives.
