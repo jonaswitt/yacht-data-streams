@@ -88,20 +88,10 @@ function decode(payload: Buffer): Record<string, number> | null {
     }
     v *= RES_OVERRIDE[key] ?? m.res;
 
-    let unit = m.unit;
-    if (unit === "rad") {
-      v = (v * 180) / Math.PI;
-      unit = "deg";
-    } else if (unit === "rad/s") {
-      v = (v * 180) / Math.PI;
-      unit = "deg/s";
-    } else if (unit === "m/s") {
-      v = v * 1.9438444924574;
-      unit = "kn";
-    }
-
-    if (typeof v === "number" && !Number.isNaN(v))
-      out[[m.name, unit].filter(Boolean).join(", ")] = v;
+    // Emit raw SI (rad, m/s, deg for lat/lon, %, s, m) under the catalog key name,
+    // matching the rest of the nmea measurement. Conversion to display units and
+    // renaming happen downstream in mapping.csv (factor).
+    if (typeof v === "number" && !Number.isNaN(v)) out[m.name] = v;
   }
   return Object.keys(out).length ? out : null;
 }
