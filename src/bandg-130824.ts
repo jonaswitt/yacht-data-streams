@@ -73,7 +73,7 @@ const RES_OVERRIDE: Record<number, number> = { 265: 0.0001, 267: 0.0001 };
 export class BandGKeyValueDecoder {
   private readonly pending: Record<
     number,
-    { total: number; buf: Buffer; seq: number }
+    { total: number; buf: Buffer; seq: number; next: number }
   > = {};
 
   /** Keys seen on the wire that are not in the catalog — candidates to identify. */
@@ -91,11 +91,19 @@ export class BandGKeyValueDecoder {
         total: data[1],
         buf: Buffer.from(data.subarray(2)),
         seq,
+        next: 1,
       };
     } else {
       const st = this.pending[src];
-      if (!st || st.seq !== seq) return null; // missed frame 0 / interleaved sequence
+      // Require the same sequence AND the expected next frame counter. A repeated
+      // or out-of-order frame would otherwise be appended at the wrong offset and
+      // could make buf reach `total` with corrupt data; discard the assembly.
+      if (!st || st.seq !== seq || st.next !== frame) {
+        delete this.pending[src];
+        return null;
+      }
       st.buf = Buffer.concat([st.buf, data.subarray(1)]);
+      st.next++;
     }
     const st = this.pending[src];
     if (st && st.buf.length >= st.total) {
@@ -130,11 +138,17 @@ export class BandGKeyValueDecoder {
       }
       if (m.res == null || m.bits !== len * 8) continue; // unscalable / miscatalogued length
 
+      const bits = len * 8;
+      const signed = SIGNED_KEYS.has(key);
+      // Skip NMEA2000 reserved encodings so an unavailable sensor value is not
+      // scaled into real telemetry: the top value of the field's range is
+      // "not available", the next is "out of range". Sentinels differ by
+      // signedness (0xFFFF/0xFFFE unsigned, 0x7FFF/0x7FFE signed for 16-bit).
+      const naValue = signed ? 2 ** (bits - 1) - 1 : 2 ** bits - 1;
+      if (raw === naValue || raw === naValue - 1) continue;
+
       let v = raw;
-      if (SIGNED_KEYS.has(key) && len > 0) {
-        const bits = len * 8;
-        if (v >= 2 ** (bits - 1)) v -= 2 ** bits;
-      }
+      if (signed && v >= 2 ** (bits - 1)) v -= 2 ** bits;
       v *= RES_OVERRIDE[key] ?? m.res;
 
       // Emit raw SI (rad, m/s, deg for lat/lon, %, s, m) under the catalog key
