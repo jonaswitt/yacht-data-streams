@@ -65,72 +65,84 @@ const SIGNED_KEYS = new Set<number>([0, 11, 16, 17, 18, 19, 20, 21, 22, 23, 24, 
 // Confirmed catalog resolution errors (report upstream to ts-pgns).
 const RES_OVERRIDE: Record<number, number> = { 265: 0.0001, 267: 0.0001 };
 
-const pending: Record<number, { total: number; buf: Buffer; seq: number }> = {};
-
-/** Keys seen on the wire that are not in the catalog — candidates to identify. */
-export const unknownKeys = new Set<number>();
-
-function decode(payload: Buffer): Record<string, number> | null {
-  if (payload.length < 2) return null;
-  const mfg = (payload[0] | (payload[1] << 8)) & 0x7ff;
-  if (mfg !== BANDG_MFG) return null;
-
-  const out: Record<string, number> = {};
-  let i = 2; // skip 2-byte manufacturer/industry header
-  while (i + 2 <= payload.length) {
-    const hdr = payload[i] | (payload[i + 1] << 8);
-    const key = hdr & 0x0fff;
-    const len = (hdr >> 12) & 0x0f;
-    i += 2;
-    if (i + len > payload.length) break;
-    let raw = 0;
-    for (let b = 0; b < len; b++) raw += payload[i + b] * 2 ** (8 * b);
-    i += len;
-
-    const m = CATALOG[key];
-    if (!m) {
-      unknownKeys.add(key);
-      continue;
-    }
-    if (m.res == null || m.bits !== len * 8) continue; // unscalable / miscatalogued length
-
-    let v = raw;
-    if (SIGNED_KEYS.has(key) && len > 0) {
-      const bits = len * 8;
-      if (v >= 2 ** (bits - 1)) v -= 2 ** bits;
-    }
-    v *= RES_OVERRIDE[key] ?? m.res;
-
-    // Emit raw SI (rad, m/s, deg for lat/lon, %, s, m) under the catalog key name,
-    // matching the rest of the nmea measurement. Conversion to display units and
-    // renaming happen downstream in mapping.csv (factor).
-    if (typeof v === "number" && !Number.isNaN(v)) out[m.name] = v;
-  }
-  return Object.keys(out).length ? out : null;
-}
-
 /**
- * Feed one raw CAN frame's data for a 130824 message from `src`. Returns the
- * decoded, scaled fields when the fast-packet completes, otherwise null.
+ * Decodes PGN 130824 from a single CAN interface. Instantiate one per CANInput:
+ * fast-packet reassembly state is keyed by source address, and source addresses
+ * can repeat across buses, so the state must not be shared between interfaces.
  */
-export function decodeBandGKeyValue(
-  src: number,
-  data: Buffer
-): Record<string, number> | null {
-  const seq = data[0] >> 5;
-  const frame = data[0] & 0x1f;
-  if (frame === 0) {
-    pending[src] = { total: data[1], buf: Buffer.from(data.subarray(2)), seq };
-  } else {
-    const st = pending[src];
-    if (!st || st.seq !== seq) return null; // missed frame 0 / interleaved sequence
-    st.buf = Buffer.concat([st.buf, data.subarray(1)]);
+export class BandGKeyValueDecoder {
+  private readonly pending: Record<
+    number,
+    { total: number; buf: Buffer; seq: number }
+  > = {};
+
+  /** Keys seen on the wire that are not in the catalog — candidates to identify. */
+  readonly unknownKeys = new Set<number>();
+
+  /**
+   * Feed one raw CAN frame's data for a 130824 message from `src`. Returns the
+   * decoded, scaled fields when the fast-packet completes, otherwise null.
+   */
+  feed(src: number, data: Buffer): Record<string, number> | null {
+    const seq = data[0] >> 5;
+    const frame = data[0] & 0x1f;
+    if (frame === 0) {
+      this.pending[src] = {
+        total: data[1],
+        buf: Buffer.from(data.subarray(2)),
+        seq,
+      };
+    } else {
+      const st = this.pending[src];
+      if (!st || st.seq !== seq) return null; // missed frame 0 / interleaved sequence
+      st.buf = Buffer.concat([st.buf, data.subarray(1)]);
+    }
+    const st = this.pending[src];
+    if (st && st.buf.length >= st.total) {
+      const payload = st.buf.subarray(0, st.total);
+      delete this.pending[src];
+      return this.decode(payload);
+    }
+    return null;
   }
-  const st = pending[src];
-  if (st && st.buf.length >= st.total) {
-    const payload = st.buf.subarray(0, st.total);
-    delete pending[src];
-    return decode(payload);
+
+  private decode(payload: Buffer): Record<string, number> | null {
+    if (payload.length < 2) return null;
+    const mfg = (payload[0] | (payload[1] << 8)) & 0x7ff;
+    if (mfg !== BANDG_MFG) return null;
+
+    const out: Record<string, number> = {};
+    let i = 2; // skip 2-byte manufacturer/industry header
+    while (i + 2 <= payload.length) {
+      const hdr = payload[i] | (payload[i + 1] << 8);
+      const key = hdr & 0x0fff;
+      const len = (hdr >> 12) & 0x0f;
+      i += 2;
+      if (i + len > payload.length) break;
+      let raw = 0;
+      for (let b = 0; b < len; b++) raw += payload[i + b] * 2 ** (8 * b);
+      i += len;
+
+      const m = CATALOG[key];
+      if (!m) {
+        this.unknownKeys.add(key);
+        continue;
+      }
+      if (m.res == null || m.bits !== len * 8) continue; // unscalable / miscatalogued length
+
+      let v = raw;
+      if (SIGNED_KEYS.has(key) && len > 0) {
+        const bits = len * 8;
+        if (v >= 2 ** (bits - 1)) v -= 2 ** bits;
+      }
+      v *= RES_OVERRIDE[key] ?? m.res;
+
+      // Emit raw SI (rad, m/s, deg for lat/lon, %, s, m) under the catalog key
+      // name, matching the rest of the nmea measurement (which is likewise raw SI
+      // - canboatjs field units are not applied). Conversion to display units and
+      // renaming happen downstream in mapping.csv (factor).
+      if (typeof v === "number" && !Number.isNaN(v)) out[m.name] = v;
+    }
+    return Object.keys(out).length ? out : null;
   }
-  return null;
 }
